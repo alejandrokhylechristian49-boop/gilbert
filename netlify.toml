@@ -1,0 +1,36 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+# API routes
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# Clean URLs - remove .html
+[[redirects]]
+  from = "/dispenser1"
+  to = "/dispenser1.html"
+  status = 200
+
+[[redirects]]
+  from = "/dispenser2"
+  to = "/dispenser2.html"
+  status = 200
+
+[[redirects]]
+  from = "/dispenser3"
+  to = "/dispenser3.html"
+  status = 200
+
+[[redirects]]
+  from = "/dispenser4"
+  to = "/dispenser4.html"
+  status = 200
+
+# Optional: Redirect root to dispenser1
+[[redirects]]
+  from = "/"
+  to = "/dispenser1"
+  status = 301
