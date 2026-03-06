@@ -1,0 +1,42 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+# API routes - keep these
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# Remove or modify the catch-all redirect
+# Either delete this line completely:
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200
+
+# OR if you want a cleaner URL structure, add specific redirects:
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/dispenser1"
+  to = "/dispenser1.html"
+  status = 200
+
+[[redirects]]
+  from = "/dispenser2"  
+  to = "/dispenser2.html"
+  status = 200
+
+[[redirects]]
+  from = "/dispenser3"
+  to = "/dispenser3.html"
+  status = 200
+
+[[redirects]]
+  from = "/dispenser4"
+  to = "/dispenser4.html"
+  status = 200

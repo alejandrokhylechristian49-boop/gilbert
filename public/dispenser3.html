@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispenser 3 - Computer Lab 5 Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div style="width:52px;flex-shrink:0;"></div>
+        <span class="header-title">Dispenser 3 - Computer Lab 5 Dashboard</span>
+        <label class="theme-switch-wrap" title="Toggle dark mode">
+            <span class="theme-icon">&#9728;</span>
+            <input type="checkbox" id="themeCheckbox">
+            <div class="switch-track"><div class="switch-thumb"></div></div>
+            <span class="theme-icon">&#9790;</span>
+        </label>
+    </header>
+
+    <div class="main-container">
+        <!-- Compact Stats Row -->
+        <div class="stats-row">
+            <div class="stat-pill">
+                <div class="stat-dot online"></div>
+                <span class="stat-num" id="onlineCount">0</span>
+                <span class="stat-label">Online</span>
+            </div>
+            <div class="stat-pill">
+                <div class="stat-dot offline"></div>
+                <span class="stat-num" id="offlineCount">0</span>
+                <span class="stat-label">Offline</span>
+            </div>
+        </div>
+
+        <!-- 3D View -->
+        <div class="card">
+            <h2>Digital Twin Visualization</h2>
+            <div id="canvas-container">
+                <div id="loading-3d">Loading 3D model...</div>
+                <div class="view-hint">&#128070; &#8592; Drag left or right to pan &#8594;</div>
+                <div class="you-are-here-label" id="youAreHereLabel">&#128205; You Are Here</div>
+                
+                <!-- Info Panel -->
+                <div class="info-3d" id="info3d">
+                    <strong>Navigation Info</strong>
+                    <div>Selected: <span id="selected-info">DSP_3</span></div>
+                    <div class="camera-pos">Camera: <span id="camera-position">X: 0, Y: 0, Z: 0</span></div>
+                    <button onclick="copyCameraPosition()">&#128203; Copy Camera Position</button>
+                </div>
+                
+                <!-- Nearest Dispenser Overlay -->
+                <div class="nearest-overlay" id="nearestOverlay" style="display:none;">
+                    <div class="nearest-header" onclick="toggleNearestOverlay(event)">
+                        <div class="nearest-title">&#127919; <span>Nearest Available</span></div>
+                        <button class="minimize-btn" id="minimizeBtn" onclick="event.stopPropagation(); toggleNearestOverlay(event);">&#8722;</button>
+                    </div>
+                    <div class="nearest-content">
+                        <div class="nearest-info" id="nearestInfo">Searching...</div>
+                        <div class="route-details" id="routeDetails"></div>
+                    </div>
+                </div>
+                
+                <!-- 3D Controls -->
+                <div class="controls-3d">
+                    <button onclick="toggleWaypoints()">Toggle Waypoints</button>
+                    <button onclick="resetCamera()">Reset Camera</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Dispensers -->
+        <div class="card">
+            <h2>Available Dispensers</h2>
+            <div class="card-container" id="statusCards"></div>
+        </div>
+
+        <!-- Report Problem -->
+        <div class="card danger-card">
+            <h2 class="danger-title"><span>&#9888;&#65039;</span> Report Problem</h2>
+            <label>Issue Type</label>
+            <select id="issue">
+                <option>No cooling/heating</option>
+                <option>Leaking</option>
+                <option>Dirty</option>
+                <option>No Power</option>
+                <option>Clogged filter/spout</option>
+            </select>
+            <label>Additional Details (Optional)</label>
+            <textarea id="details" placeholder="Describe the issue in more detail..."></textarea>
+            <button class="submit-btn" id="submitBtn" onclick="submitComplaint()">&#9888;&#65039; Submit Complaint</button>
+            <div id="feedback"></div>
+        </div>
+    </div>
+
+    <footer style="text-align:center; padding: 18px 20px 24px; font-size: 12px;">
+        For more help contact your building administrator.
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="js/app-3.js"></script>
+</body>
+</html>
