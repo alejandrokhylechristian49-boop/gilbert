@@ -25,7 +25,7 @@ document.getElementById('themeCheckbox').addEventListener('change', function(e) 
 // ================= GLOBAL VARIABLES =================
 let db, auth;
 const SELECTED_DISPENSER_ID = 'DSP_3';  // Changed to DSP_2
-const SELECTED_DISPENSER_NUM = 3;       // NEW - numeric ID for this dispenser
+const SELECTED_DISPENSER_NUM = 3;       
 let currentDispenserStatus = 0;
 let hasActiveComplaint = false;
 let allDispenserStatuses = {};
@@ -92,7 +92,7 @@ const dispenserInfo = {
   'DSP_1': { name: 'DSP_1', location: 'Floor 1 - Entrance', floor: 1 },
   'DSP_2': { name: 'DSP_2', location: 'Floor 1 - Computer Lab 1', floor: 1 },
   'DSP_3': { name: 'DSP_3', location: 'Floor 1 - Computer Lab 2', floor: 1 },
-  'DSP_4': { name: 'DSP_4', location: 'Floor 2 - Front Right', floor: 2 },
+  'DSP_4': { name: 'DSP_4', location: 'Floor 2 - Computer Lab 4', floor: 2 },
   'DSP_5': { name: 'DSP_5', location: 'Floor 2 - Computer Lab 5', floor: 2 },
   'DSP_6': { name: 'DSP_6', location: 'Floor 2 - Front Left', floor: 2 },
   'DSP_7': { name: 'DSP_7', location: 'Floor 2 - COE Office', floor: 2 },
@@ -493,7 +493,7 @@ function renderStatusCards() {
           <span class="card-label">Status:</span>
           <span class="status-badge ${statusClass}" id="status-${id}">${escapeHtml(statusText)}</span>
         </div>
-        <div class="click-hint">${isSelected ? '&#128309; Click to deselect' : '&#128070; Click to route here'}</div>
+        <div class="click-hint">${isSelected ? 'Click to deselect' : 'Click to route here'}</div>
       </div>`;
     
     container.innerHTML += cardHtml;
