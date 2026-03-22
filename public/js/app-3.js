@@ -24,8 +24,8 @@ document.getElementById('themeCheckbox').addEventListener('change', function(e) 
 
 // ================= GLOBAL VARIABLES =================
 let db, auth;
-const SELECTED_DISPENSER_ID = 'DSP_4';  
-const SELECTED_DISPENSER_NUM = 4;       
+const SELECTED_DISPENSER_ID = 'DSP_7';  
+const SELECTED_DISPENSER_NUM = 7;       
 let currentDispenserStatus = 0;
 let hasActiveComplaint = false;
 let allDispenserStatuses = {};
