@@ -1,6 +1,6 @@
 // ================= SESSION CHECK =================
 if (sessionStorage.getItem("isLoggedIn") !== "true") {
-    window.location.replace("loginadmin.html");
+    window.location.replace("loginadmin");
 }
 
 // ================= THEME FUNCTIONS =================
