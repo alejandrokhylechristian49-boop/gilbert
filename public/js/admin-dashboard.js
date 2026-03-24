@@ -72,7 +72,7 @@ function closeLogoutModal() {
 
 function confirmLogout() {
     sessionStorage.removeItem("isLoggedIn");
-    window.location.replace("loginadmin.html");
+    window.location.replace("loginadmin");
 }
 
 // Logout button event listeners
