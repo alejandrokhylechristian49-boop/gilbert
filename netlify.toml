@@ -29,6 +29,18 @@
   to = "/dispenser4.html"
   status = 200
 
+  # Admin routes
+[[redirects]]
+  from = "/loginadmin"
+  to = "/loginadmin.html"
+  status = 200
+
+[[redirects]]
+  from = "/features"
+  to = "/features.html"
+  status = 200
+  
+
 # Optional: Redirect root to dispenser1
 [[redirects]]
   from = "/"
