@@ -8,8 +8,6 @@
     --card-bg: #ffffff;
     --header-bg-start: #353ba7;
     --header-bg-end: #2d4286;
-    --nav-bg: #ffffff;
-    --nav-shadow: 0 4px 14px rgba(0,0,0,0.15);
     --text-primary: #222222;
     --text-secondary: #777777;
     --text-value: #333333;
@@ -45,8 +43,6 @@
     --card-bg: #1a1d2e;
     --header-bg-start: #1e2260;
     --header-bg-end: #161a4a;
-    --nav-bg: #1a1d2e;
-    --nav-shadow: 0 4px 14px rgba(0,0,0,0.5);
     --text-primary: #e8eaf6;
     --text-secondary: #8b90b8;
     --text-value: #c5c9e8;
@@ -79,7 +75,7 @@
 
 body {
     opacity: 0;
-    transition: opacity 0.2s, background-color 0.3s, color 0.3s;
+    transition: opacity 0.2s, background-color 0.3s;
     font-family: 'Segoe UI', sans-serif;
     background: var(--bg);
     margin: 0;
@@ -153,7 +149,7 @@ h1 {
     background: var(--switch-track-off);
     border: 1.5px solid rgba(255,255,255,0.35);
     border-radius: 12px;
-    transition: background 0.3s, border-color 0.3s;
+    transition: background 0.3s;
     flex-shrink: 0;
 }
 
@@ -166,12 +162,11 @@ h1 {
     border-radius: 50%;
     background: #ffffff;
     box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s;
 }
 
 .theme-switch-wrap input:checked ~ .switch-track {
     background: var(--switch-track-on);
-    border-color: rgba(255,255,255,0.5);
 }
 
 .theme-switch-wrap input:checked ~ .switch-track .switch-thumb {
@@ -187,7 +182,6 @@ h1 {
     border-radius: 8px;
     cursor: pointer;
     border: none;
-    transition: background 0.2s;
 }
 
 .hamburger:hover {
@@ -254,7 +248,6 @@ h1 {
     display: block;
     text-align: left;
     width: 100%;
-    transition: background 0.2s;
     border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
@@ -305,7 +298,6 @@ nav a, .logout-btn {
 nav a:hover, .logout-btn:hover {
     background: linear-gradient(135deg, #2d4286, #1f2d5c);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(53,59,167,0.4);
 }
 
 .logout-btn {
@@ -315,7 +307,6 @@ nav a:hover, .logout-btn:hover {
 
 .logout-btn:hover {
     background: linear-gradient(135deg, #c82333, #bd2130);
-    box-shadow: 0 5px 15px rgba(220,53,69,0.4);
 }
 
 .main-container {
@@ -332,7 +323,6 @@ h2 {
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: color 0.3s;
 }
 
 .card {
@@ -341,7 +331,6 @@ h2 {
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: var(--section-shadow);
-    transition: background-color 0.3s, box-shadow 0.3s;
 }
 
 #canvas-container {
@@ -351,10 +340,6 @@ h2 {
     border-radius: 10px;
     overflow: hidden;
     background: #a8b5c0;
-}
-
-#canvas-container canvas {
-    display: block;
 }
 
 .view-hint {
@@ -395,7 +380,7 @@ h2 {
     position: absolute;
     top: 10px;
     left: 10px;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0,0,0,0.85);
     color: white;
     padding: 8px 12px;
     border-radius: 8px;
@@ -422,12 +407,6 @@ h2 {
     z-index: 20;
 }
 
-.card-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
 .status-scroll-wrapper {
     max-height: 340px;
     overflow-y: auto;
@@ -435,8 +414,6 @@ h2 {
     flex-direction: column;
     gap: 12px;
     padding-right: 6px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .status-scroll-wrapper::-webkit-scrollbar {
@@ -459,7 +436,7 @@ h2 {
     padding: 15px;
     box-shadow: var(--card-shadow);
     border-left: 5px solid var(--border-color);
-    transition: all 0.2s, background-color 0.3s;
+    transition: all 0.2s;
     cursor: pointer;
 }
 
@@ -502,7 +479,6 @@ h2 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: color 0.3s;
 }
 
 .card-row {
@@ -516,13 +492,11 @@ h2 {
 .card-label {
     color: var(--text-secondary);
     font-weight: 500;
-    transition: color 0.3s;
 }
 
 .card-value {
     color: var(--text-value);
     font-weight: 600;
-    transition: color 0.3s;
 }
 
 .status-badge {
@@ -531,34 +505,14 @@ h2 {
     font-weight: 700;
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
     display: inline-block;
 }
 
-.status-offline {
-    background: #6c757d;
-    color: #fff;
-}
-
-.status-empty {
-    background: #dc3545;
-    color: #fff;
-}
-
-.status-critical {
-    background: #fd7e14;
-    color: #fff;
-}
-
-.status-mid {
-    background: #17a2b8;
-    color: #fff;
-}
-
-.status-full {
-    background: #28a745;
-    color: #fff;
-}
+.status-offline { background: #6c757d; color: #fff; }
+.status-empty { background: #dc3545; color: #fff; }
+.status-critical { background: #fd7e14; color: #fff; }
+.status-mid { background: #17a2b8; color: #fff; }
+.status-full { background: #28a745; color: #fff; }
 
 .refill-badge {
     background: #dc3545;
@@ -571,12 +525,8 @@ h2 {
 }
 
 @keyframes badgePulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.6;
-    }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
 }
 
 .empty-state {
@@ -586,11 +536,6 @@ h2 {
     font-style: italic;
     background: var(--empty-state-bg);
     border-radius: 10px;
-    transition: background-color 0.3s, color 0.3s;
-}
-
-.complaint-card {
-    position: relative;
 }
 
 .complaint-card .complaint-badge {
@@ -611,7 +556,6 @@ h2 {
     color: #fff;
     cursor: pointer;
     font-size: 12px;
-    transition: all 0.2s;
     margin-top: 10px;
     width: 100%;
 }
@@ -645,12 +589,8 @@ h2 {
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .modal-content {
@@ -661,7 +601,6 @@ h2 {
     width: 90%;
     box-shadow: var(--modal-shadow);
     animation: slideUp 0.3s ease;
-    transition: background-color 0.3s;
 }
 
 @keyframes slideUp {
@@ -681,7 +620,6 @@ h2 {
     color: var(--modal-title);
     text-align: center;
     margin-bottom: 10px;
-    transition: color 0.3s;
 }
 
 .modal-message {
@@ -690,7 +628,6 @@ h2 {
     text-align: center;
     margin-bottom: 26px;
     line-height: 1.5;
-    transition: color 0.3s;
 }
 
 .modal-actions {
@@ -712,7 +649,6 @@ h2 {
 .btn-cancel {
     background: var(--btn-cancel-bg);
     color: var(--btn-cancel-color);
-    transition: background-color 0.3s, color 0.3s;
 }
 
 .btn-cancel:hover {
@@ -741,7 +677,6 @@ h2 {
     font-weight: bold;
     color: var(--loading-color);
     z-index: 9999;
-    transition: background-color 0.3s, color 0.3s;
 }
 
 .spinner {
@@ -754,30 +689,17 @@ h2 {
 }
 
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
 
 @media (max-width: 767px) {
-    .hamburger {
-        display: flex;
-    }
-    
-    .nav-container {
-        display: none;
-    }
-    
-    #canvas-container {
-        height: 340px;
-    }
+    .hamburger { display: flex; }
+    .nav-container { display: none; }
+    #canvas-container { height: 340px; }
 }
 
 @media (min-width: 768px) {
-    .mobile-menu {
-        display: none !important;
-    }
-    
+    .mobile-menu { display: none !important; }
     .status-scroll-wrapper {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
