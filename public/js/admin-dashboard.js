@@ -19,13 +19,86 @@ function toggleTheme(isDark) {
 (function() {
     const saved = localStorage.getItem('adminTheme') || 'light';
     const isDark = saved === 'dark';
-    document.getElementById('themeCheckbox').checked = isDark;
+    const checkbox = document.getElementById('themeCheckbox');
+    if (checkbox) checkbox.checked = isDark;
     applyTheme(isDark);
 })();
 
-// Add event listener for theme toggle
-document.getElementById('themeCheckbox').addEventListener('change', function(e) {
-    toggleTheme(e.target.checked);
+// Theme toggle event
+const themeCheckbox = document.getElementById('themeCheckbox');
+if (themeCheckbox) {
+    themeCheckbox.addEventListener('change', function(e) {
+        toggleTheme(e.target.checked);
+    });
+}
+
+// ================= HAMBURGER MENU =================
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+const mobileMenu = document.getElementById('mobileMenu');
+
+if (hamburgerBtn) {
+    hamburgerBtn.addEventListener('click', function() {
+        const isOpen = mobileMenu.classList.contains('active');
+        mobileMenu.classList.toggle('active', !isOpen);
+        hamburgerBtn.classList.toggle('active', !isOpen);
+    });
+}
+
+// Close mobile menu when clicking a link
+document.querySelectorAll('.mobile-item').forEach(el => {
+    el.addEventListener('click', () => {
+        mobileMenu.classList.remove('active');
+        if (hamburgerBtn) hamburgerBtn.classList.remove('active');
+    });
+});
+
+// ================= LOGOUT FUNCTIONS =================
+function showLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+    // Close mobile menu if open
+    if (mobileMenu) mobileMenu.classList.remove('active');
+    if (hamburgerBtn) hamburgerBtn.classList.remove('active');
+}
+
+function closeLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+function confirmLogout() {
+    sessionStorage.removeItem("isLoggedIn");
+    window.location.replace("loginadmin.html");
+}
+
+// Logout button event listeners
+const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+const desktopLogoutBtn = document.getElementById('desktopLogoutBtn');
+const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
+const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+
+if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', showLogoutModal);
+if (desktopLogoutBtn) desktopLogoutBtn.addEventListener('click', showLogoutModal);
+if (cancelLogoutBtn) cancelLogoutBtn.addEventListener('click', closeLogoutModal);
+if (confirmLogoutBtn) confirmLogoutBtn.addEventListener('click', confirmLogout);
+
+// Close modal when clicking outside
+window.addEventListener('click', function(e) {
+    const modal = document.getElementById('logoutModal');
+    if (modal && modal.classList.contains('active') && e.target === modal) {
+        closeLogoutModal();
+    }
+});
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeLogoutModal();
+    }
 });
 
 // ================= GLOBAL VARIABLES =================
@@ -235,6 +308,7 @@ function loadDashboardData() {
 
 function renderStatusCards() {
     const container = document.getElementById('statusCards');
+    if (!container) return;
     container.innerHTML = '';
     const keys = Object.keys(allDispenserStatuses).sort((a, b) => {
         const diff = (statusSortOrder[allDispenserStatuses[a]] ?? 5) - (statusSortOrder[allDispenserStatuses[b]] ?? 5);
@@ -276,6 +350,7 @@ function renderStatusCards() {
 
 function renderComplaints() {
     const container = document.getElementById('complaintsCards');
+    if (!container) return;
     container.innerHTML = '';
     if (!complaints.length) {
         container.innerHTML = '<div class="empty-state">No complaints</div>';
@@ -736,11 +811,11 @@ function onWindowResize() {
     renderer.setSize(container.clientWidth, container.clientHeight);
 }
 
+let emptyPulseTime = 0;
 function animate3D() {
     requestAnimationFrame(animate3D);
-
-    // Animate empty dispensers pulse
-    let emptyPulseTime = Date.now() / 1000;
+    
+    emptyPulseTime += 0.05;
     dispensers3D.forEach(d => {
         const id = `DSP_${d.userData.id}`;
         if (allDispenserStatuses[id] === 1) {
@@ -748,7 +823,7 @@ function animate3D() {
                 if (node.isMesh) {
                     const nodeName = node.name.toLowerCase();
                     if (!nodeName.includes('pump') && !nodeName.includes('cap')) {
-                        node.material.emissiveIntensity = 0.2 + 0.3 * Math.abs(Math.sin(emptyPulseTime * 5));
+                        node.material.emissiveIntensity = 0.2 + 0.3 * Math.abs(Math.sin(emptyPulseTime));
                     }
                 }
             });
