@@ -641,7 +641,7 @@ function findNearestDispenser() {
   const available = Object.entries(allDispenserStatuses)
     .filter(([id, status]) =>
       id !== SELECTED_DISPENSER_ID &&
-      (status === 2 || status === 3 || status === 4)
+      (status === 3 || status === 4)
     );
 
   if (available.length === 0) {
