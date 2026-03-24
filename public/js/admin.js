@@ -63,7 +63,7 @@ form.addEventListener("submit", async (e) => {
         
         if (adminData.username === username && adminData.password === password) {
             sessionStorage.setItem("isLoggedIn", "true");
-            window.location.href = "features.html";
+            window.location.href = "features";
         } else {
             showError("Invalid username or password");
             resetButton();
