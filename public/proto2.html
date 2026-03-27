@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dispenser Logs</title>
+<link rel="icon" type="image/png" href="logo.png" sizes="96x96"/>
+<link rel="stylesheet" href="css/logs.css">
+
+<!-- AUTH CHECK -->
+<script>
+  if (sessionStorage.getItem("isLoggedIn") !== "true") {
+    window.location.replace("loginadmin.html");
+  }
+</script>
+
+<script>
+  (function() {
+    const saved = localStorage.getItem("userTheme") || "light";
+    document.documentElement.setAttribute("data-theme", saved);
+  })();
+</script>
+</head>
+
+<body>
+<header>
+  <div class="header-top">
+    <h1>Dispenser Logs</h1>
+    <label class="theme-switch-wrap" title="Toggle dark mode">
+      <span class="theme-icon">&#9728;</span>
+      <input type="checkbox" id="themeCheckbox" onchange="toggleTheme(this.checked)">
+      <div class="switch-track"><div class="switch-thumb"></div></div>
+      <span class="theme-icon">&#9790;</span>
+    </label>
+  </div>
+  <nav>
+    <a href="features.html" class="back-btn">
+      <span>&#8592;</span>
+      <span>Dashboard</span>
+    </a>
+    <button class="export-btn" onclick="showExportModal()">
+      <span>Export PDF</span>
+    </button>
+  </nav>
+</header>
+
+<input type="text" id="search" placeholder="Search logs by dispenser or status..." onkeyup="filterLogs()">
+
+<!-- Export Modal -->
+<div id="exportModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Export Logs to PDF</div>
+    </div>
+    <div class="info-box">
+      Select the date range and options for your PDF export. The report will include all logs within the selected period.
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date Range</label>
+      <div class="date-range">
+        <div>
+          <input type="date" id="startDate" class="form-input" onchange="updateDateRange()">
+          <small>From</small>
+        </div>
+        <div>
+          <input type="date" id="endDate" class="form-input" onchange="updateDateRange()">
+          <small>To</small>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Filter by Dispenser (Optional)</label>
+      <input type="text" id="dispenserFilter" class="form-input" placeholder="Leave blank for all dispensers">
+    </div>
+    <div class="form-group">
+      <div class="checkbox-group">
+        <input type="checkbox" id="includeCharts" checked>
+        <label for="includeCharts">Include summary statistics</label>
+      </div>
+    </div>
+    <div id="previewStats" style="display:none; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+      <div style="font-weight: 600; margin-bottom: 8px;">Preview:</div>
+      <div style="font-size: 14px;" id="statsText"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn btn-cancel" onclick="closeExportModal()">Cancel</button>
+      <button class="modal-btn btn-export" onclick="exportToPDF()" id="exportBtn">
+        <span>Generate PDF</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="logs"></div>
+<div id="pager"></div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div>Loading logs...</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="js/logs.js"></script>
+</body>
+</html>
