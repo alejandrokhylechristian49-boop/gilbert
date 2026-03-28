@@ -510,7 +510,7 @@ h2 {
 
 .status-offline { background: #6c757d; color: #fff; }
 .status-empty { background: #dc3545; color: #fff; }
-.status-critical { background: #fd7e14; color: #fff; }
+.status-critical { background: #CC0000; color: #fff; }
 .status-mid { background: #17a2b8; color: #fff; }
 .status-full { background: #28a745; color: #fff; }
 
