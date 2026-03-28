@@ -136,7 +136,7 @@ const COMPLAINT_OUTLINE_COLOR = 0xdc3545;
 
 // Status mappings
 const statusColors = {
-    0: 0x808080, 1: 0xff4444, 2: 0xff9800, 3: 0xffeb3b, 4: 0x4CAF50
+    0: 0x808080, 1: 0xff4444, 2: 0xCC0000, 3: 0xffeb3b, 4: 0x4CAF50
 };
 
 const statusNames = {
