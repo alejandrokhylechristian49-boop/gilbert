@@ -284,7 +284,7 @@ h2.danger-title {
 
 .status-offline, .offline { background: #808080; color: #fff; }
 .status-empty, .empty { background: #ff4444; color: #fff; }
-.status-critical, .critical { background: #ff9800; color: #fff; }
+.status-critical, .critical { background: #CC0000; color: #fff; }
 .status-mid, .mid { background: #ffeb3b; color: #333; }
 .status-full, .full { background: #4CAF50; color: #fff; }
 .online-badge { background: #28a745; color: #fff; }
