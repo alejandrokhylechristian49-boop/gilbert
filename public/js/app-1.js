@@ -112,10 +112,10 @@ const dispenserPositions = [
   { id: 1, x: -1.5, y: 2.0, z: 4, rotation: 0, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Entrance" },
   { id: 2, x: -4.8, y: 2.0, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Front Right" },
   { id: 3, x: -4.8, y: 2.0, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Back Right" },
-  { id: 4, x: -4.8, y: 3.80, z: 14, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Left" },
-  { id: 5, x: -4.8, y: 3.80, z: 21.5, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Left" },
-  { id: 6, x: -4.8, y: 3.80, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Right" },
-  { id: 7, x: -4.8, y: 3.80, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Right" },
+  { id: 4, x: -4.8, y: 3.80, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Right" },
+  { id: 5, x: -4.8, y: 3.80, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Right" },
+  { id: 6, x: -4.8, y: 3.80, z: 14, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Left" },
+  { id: 7, x: -4.8, y: 3.80, z: 21.5, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Left" },
   { id: 8, x: -4.8, y: 5.50, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Front Right" },
   { id: 9, x: -4.8, y: 5.50, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Back Right" },
   { id: 10, x: -4.8, y: 5.50, z: 14, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Front Left" },
@@ -126,14 +126,10 @@ const dispenserPositions = [
 
 const dispenserToWaypoint = {
   1: 'f1_front_left', 2: 'f1_front_right', 3: 'f1_back',
-  4: 'f2_left2',
-  5: 'f2_left4',
-  6: 'f2_center_junction',
-  7: 'f2_back',
+  4: 'f2_center_junction', 5: 'f2_back', 6: 'f2_left2', 7: 'f2_left4',
   8: 'f3_center_junction', 9: 'f3_back', 10: 'f3_left2', 11: 'f3_left4',
   12: 'f4_left3', 13: 'f4_left3'
 };
-
 const dispenserOffsets = {
   1: new THREE.Vector3(0, 0, -1),
   2: new THREE.Vector3(-1.5, 0, 0), 3: new THREE.Vector3(-1.5, 0, 0),
