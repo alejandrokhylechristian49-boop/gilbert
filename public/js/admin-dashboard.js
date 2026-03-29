@@ -234,7 +234,7 @@ async function initializeFirebase() {
 function loadDashboardData() {
     function effectiveStatus(id) {
         const hb = lastHeartbeat[id];
-        const isOnline = hb && (Date.now() - hb <= 70000);
+        const isOnline = hb && (Date.now() - hb <= 10000);
         return isOnline ? (trueFirebaseStatus[id] ?? 0) : 0;
     }
 
