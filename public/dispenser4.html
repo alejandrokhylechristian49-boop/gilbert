@@ -9,18 +9,41 @@
 </head>
 <body>
     <header>
-        <div style="width:52px;flex-shrink:0;"></div>
+        <div style="width:90px;flex-shrink:0;"></div>
         <span class="header-title">Dispenser 4 - COE Office Dashboard</span>
-        <label class="theme-switch-wrap" title="Toggle dark mode">
-            <span class="theme-icon">&#9728;</span>
-            <input type="checkbox" id="themeCheckbox">
-            <div class="switch-track"><div class="switch-thumb"></div></div>
-            <span class="theme-icon">&#9790;</span>
-        </label>
+        <div class="header-right">
+            <div class="notif-bell-wrap" id="notifBell" onclick="toggleNotifPanel()" title="Consumption alerts">
+                <span class="notif-bell-icon">ALERTS</span>
+                <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+            </div>
+            <label class="theme-switch-wrap" title="Toggle dark mode">
+                <span class="theme-icon">&#9728;</span>
+                <input type="checkbox" id="themeCheckbox">
+                <div class="switch-track"><div class="switch-thumb"></div></div>
+                <span class="theme-icon">&#9790;</span>
+            </label>
+        </div>
     </header>
 
+    <div class="notif-panel-backdrop" id="notifBackdrop" onclick="closeNotifPanel()"></div>
+
+    <div class="notif-panel" id="notifPanel" style="display:none;">
+        <div class="notif-panel-header">
+            <div>
+                <div class="notif-panel-title">Consumption Alerts</div>
+                <div class="notif-panel-sub" id="notifPanelSub">Comparing today vs yesterday</div>
+            </div>
+            <button class="notif-panel-close" onclick="closeNotifPanel()">&#10005;</button>
+        </div>
+        <div class="notif-list" id="notifList">
+            <div class="notif-loading">
+                <div class="notif-spinner"></div>
+                <div>Analyzing logs...</div>
+            </div>
+        </div>
+    </div>
+
     <div class="main-container">
-        <!-- Compact Stats Row -->
         <div class="stats-row">
             <div class="stat-pill">
                 <div class="stat-dot online"></div>
@@ -34,35 +57,28 @@
             </div>
         </div>
 
-        <!-- 3D View -->
         <div class="card">
             <h2>Digital Twin Visualization</h2>
             <div id="canvas-container">
                 <div id="loading-3d">Loading 3D model...</div>
-                <div class="view-hint">&#128070; &#8592; Drag left or right to pan &#8594;</div>
+                <div class="view-hint">Drag left or right to pan</div>
                 <div class="you-are-here-label" id="youAreHereLabel">You Are Here</div>
-                
-                <!-- Info Panel -->
                 <div class="info-3d" id="info3d">
                     <strong>Navigation Info</strong>
-                    <div>Selected: <span id="selected-info">DSP_4</span></div>
+                    <div>Selected: <span id="selected-info">DSP_1</span></div>
                     <div class="camera-pos">Camera: <span id="camera-position">X: 0, Y: 0, Z: 0</span></div>
-                    <button onclick="copyCameraPosition()">&#128203; Copy Camera Position</button>
+                    <button onclick="copyCameraPosition()">Copy Camera Position</button>
                 </div>
-                
-                <!-- Nearest Dispenser Overlay -->
                 <div class="nearest-overlay" id="nearestOverlay" style="display:none;">
                     <div class="nearest-header" onclick="toggleNearestOverlay(event)">
-                        <div class="nearest-title">&#127919; <span>Nearest Available</span></div>
-                        <button class="minimize-btn" id="minimizeBtn" onclick="event.stopPropagation(); toggleNearestOverlay(event);">&#8722;</button>
+                        <div class="nearest-title"><span>Nearest Available</span></div>
+                        <button class="minimize-btn" id="minimizeBtn" onclick="event.stopPropagation(); toggleNearestOverlay(event);">-</button>
                     </div>
                     <div class="nearest-content">
                         <div class="nearest-info" id="nearestInfo">Searching...</div>
                         <div class="route-details" id="routeDetails"></div>
                     </div>
                 </div>
-                
-                <!-- 3D Controls -->
                 <div class="controls-3d">
                     <button onclick="toggleWaypoints()">Toggle Waypoints</button>
                     <button onclick="resetCamera()">Reset Camera</button>
@@ -70,13 +86,11 @@
             </div>
         </div>
 
-        <!-- Available Dispensers -->
         <div class="card">
             <h2>Available Dispensers</h2>
             <div class="card-container" id="statusCards"></div>
         </div>
 
-        <!-- Report Problem -->
         <div class="card danger-card">
             <h2 class="danger-title">Report Problem</h2>
             <label>Issue Type</label>
@@ -98,12 +112,11 @@
         For more help contact your building administrator.
     </footer>
 
-    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="js/app-4.js"></script>
+    <script src="js/app-1.js"></script>
 </body>
 </html>
