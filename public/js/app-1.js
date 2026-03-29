@@ -9,7 +9,6 @@ function toggleTheme(isDark) {
   applyTheme(isDark); 
 }
 
-// Sync theme on load
 (function() {
   const saved = localStorage.getItem('userTheme') || 'light';
   const isDark = saved === 'dark';
@@ -17,15 +16,14 @@ function toggleTheme(isDark) {
   applyTheme(isDark);
 })();
 
-// Add event listener for theme toggle
 document.getElementById('themeCheckbox').addEventListener('change', function(e) {
   toggleTheme(e.target.checked);
 });
 
 // ================= GLOBAL VARIABLES =================
 let db, auth;
-const SELECTED_DISPENSER_ID = 'DSP_1';  // Changed to DSP_2
-const SELECTED_DISPENSER_NUM = 1;       // NEW - numeric ID for this dispenser
+const SELECTED_DISPENSER_ID = 'DSP_1';
+const SELECTED_DISPENSER_NUM = 1;
 let currentDispenserStatus = 0;
 let hasActiveComplaint = false;
 let allDispenserStatuses = {};
@@ -34,6 +32,13 @@ let nearestDispenserId = null;
 let lastHeartbeat = {};
 let isOverlayMinimized = false;
 let manualRoutedDispenserId = null;
+
+// NOTIFICATION STATE
+let allLogs = [];
+let logsLoaded = false;
+let notifAlerts = [];
+let notifPanelOpen = false;
+let notifAnalyzed = false;
 
 // THREE.JS Variables
 let scene, camera, renderer, buildingModel, tilesModel, lightModel, doorModel, windowModel, columnModel;
@@ -68,7 +73,6 @@ let touchState = {
   panning: false
 };
 
-// Status mappings
 const statusColors = {
   0: 0x808080, 1: 0xff4444, 2: 0xCC0000, 3: 0xffeb3b, 4: 0x4CAF50
 };
@@ -90,7 +94,7 @@ const firebaseStatusToLocal = {
 
 const dispenserInfo = {
   'DSP_1': { name: 'DSP_1', location: 'Floor 1 - Entrance', floor: 1 },
-  'DSP_2': { name: 'DSP_2', location: 'Floor 1 - Computer Lab 1', floor: 1 }, //wala
+  'DSP_2': { name: 'DSP_2', location: 'Floor 1 - Computer Lab 1', floor: 1 },
   'DSP_3': { name: 'DSP_3', location: 'Floor 1 - Computer Lab 2', floor: 1 },
   'DSP_4': { name: 'DSP_4', location: 'Floor 2 - Computer Lab 4', floor: 2 },
   'DSP_5': { name: 'DSP_5', location: 'Floor 2 - Computer Lab 5', floor: 2 },
@@ -108,13 +112,9 @@ const dispenserPositions = [
   { id: 1, x: -1.5, y: 2.0, z: 4, rotation: 0, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Entrance" },
   { id: 2, x: -4.8, y: 2.0, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Front Right" },
   { id: 3, x: -4.8, y: 2.0, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Back Right" },
-  // SWAPPED: DSP_4 (Computer Lab 4) now at Front Left position (was DSP_6)
   { id: 4, x: -4.8, y: 3.80, z: 14, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Left" },
-  // SWAPPED: DSP_5 (Computer Lab 5) now at Back Left position (was DSP_7)
   { id: 5, x: -4.8, y: 3.80, z: 21.5, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Left" },
-  // SWAPPED: DSP_6 (Front Left) now at Front Right position (was DSP_4)
   { id: 6, x: -4.8, y: 3.80, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Right" },
-  // SWAPPED: DSP_7 (COE Office) now at Back Right position (was DSP_5)
   { id: 7, x: -4.8, y: 3.80, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Right" },
   { id: 8, x: -4.8, y: 5.50, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Front Right" },
   { id: 9, x: -4.8, y: 5.50, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Back Right" },
@@ -126,13 +126,9 @@ const dispenserPositions = [
 
 const dispenserToWaypoint = {
   1: 'f1_front_left', 2: 'f1_front_right', 3: 'f1_back',
-  // SWAPPED: DSP_4 (now at Front Left)  f2_left2
   4: 'f2_left2',
-  // SWAPPED: DSP_5 (now at Back Left)  f2_left4
   5: 'f2_left4',
-  // SWAPPED: DSP_6 (now at Front Right)  f2_center_junction
   6: 'f2_center_junction',
-  // SWAPPED: DSP_7 (now at Back Right)  f2_back
   7: 'f2_back',
   8: 'f3_center_junction', 9: 'f3_back', 10: 'f3_left2', 11: 'f3_left4',
   12: 'f4_left3', 13: 'f4_left3'
@@ -158,7 +154,7 @@ const navWaypoints = {
   'f1_back': { pos: new THREE.Vector3(-6.5, 2.8, -16.1), floor: 1 },
   'f1_stairs': { pos: new THREE.Vector3(-7.05, 2.8, 4.1), floor: 1 },
   'f1_rightstairs': { pos: new THREE.Vector3(-6.5, 2.8, -21.8), floor: 1 },
-  'f1_left1': { pos: new THREE.Vector3(-6.5,2.8, 14), floor: 1 },
+  'f1_left1': { pos: new THREE.Vector3(-6.5, 2.8, 14), floor: 1 },
   'f1_left2': { pos: new THREE.Vector3(-6.5, 2.8, 18), floor: 1 },
   'f1_left3': { pos: new THREE.Vector3(-6.5, 2.8, 22.1), floor: 1 },
   'f1_left4': { pos: new THREE.Vector3(-6.5, 2.8, 25.5), floor: 1 },
@@ -360,7 +356,7 @@ window.routeToDispenser = function(dispenserId) {
     document.getElementById('nearestInfo').textContent = `${info.location}`;
     document.getElementById('routeDetails').innerHTML =
       `<strong>Status:</strong> <span style="color:#ff4444;">${statusLabel}</span><br>` +
-      `<strong style="color:#ff4444;">Cannot route — dispenser unavailable</strong>`;
+      `<strong style="color:#ff4444;">Cannot route - dispenser unavailable</strong>`;
     return;
   }
 
@@ -375,141 +371,239 @@ window.routeToDispenser = function(dispenserId) {
     `<strong>User selected route</strong>`;
 
   setDispenserHighlight(localId, OUTLINE_COLOR_MANUAL);
-  update3DRoute(SELECTED_DISPENSER_NUM, localId);  // CHANGED: from 1 to SELECTED_DISPENSER_NUM
+  update3DRoute(SELECTED_DISPENSER_NUM, localId);
 };
 
-function createWaypointMarkers() {
-  clearWaypointMarkers();
-  for (const [name, waypoint] of Object.entries(navWaypoints)) {
-    const sphereGeo = new THREE.SphereGeometry(0.3, 16, 16);
-    let color;
-    if (waypoint.floor === 1) color = 0xff0000;
-    else if (waypoint.floor === 2) color = 0x0000ff;
-    else if (waypoint.floor === 3) color = 0x00ff00;
-    else if (waypoint.floor === 4) color = 0xff00ff;
-    else color = 0xffff00;
-    const sphereMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.5 });
-    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
-    sphere.position.copy(waypoint.pos);
-    sphere.userData.waypointName = name;
-    sphere.userData.isWaypoint = true;
-    scene.add(sphere);
-    waypointMarkers.push(sphere);
+// ================= NOTIFICATION FUNCTIONS =================
+
+const MONITORED_DISPENSERS = ['DSP_1', 'DSP_3', 'DSP_4', 'DSP_7', 'DSP_8'];
+
+window.toggleNotifPanel = function() {
+  if (notifPanelOpen) { closeNotifPanel(); } else { openNotifPanel(); }
+};
+
+window.openNotifPanel = function() {
+  notifPanelOpen = true;
+  document.getElementById('notifPanel').style.display = 'block';
+  document.getElementById('notifBackdrop').classList.add('open');
+  if (logsLoaded && Object.keys(allDispenserStatuses).length > 0) {
+    runConsumptionAnalysis();
   }
-  const lineMat = new THREE.LineBasicMaterial({ color: 0xffff00 });
-  for (const [nodeName, connections] of Object.entries(navConnections)) {
-    const startPos = navWaypoints[nodeName].pos;
-    for (const connectedNode of connections) {
-      const endPos = navWaypoints[connectedNode].pos;
-      const geo = new THREE.BufferGeometry().setFromPoints([startPos, endPos]);
-      const line = new THREE.Line(geo, lineMat);
-      scene.add(line);
-      waypointMarkers.push(line);
+};
+
+window.closeNotifPanel = function() {
+  notifPanelOpen = false;
+  document.getElementById('notifPanel').style.display = 'none';
+  document.getElementById('notifBackdrop').classList.remove('open');
+};
+
+function parseTimestamp(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return null;
+  try {
+    const parts = timeStr.split(',');
+    if (parts.length < 2) return null;
+    const dateTimePart = parts[1].trim();
+    const dateTimeComponents = dateTimePart.split(' ');
+    if (dateTimeComponents.length < 2) return null;
+    const datePart = dateTimeComponents[0];
+    const timePart = dateTimeComponents[1];
+    if (!datePart || !timePart) return null;
+    const dateParts = datePart.split('-');
+    const timeParts = timePart.split(':');
+    if (dateParts.length !== 3 || timeParts.length !== 3) return null;
+    const year = Number(dateParts[0]), month = Number(dateParts[1]), day = Number(dateParts[2]);
+    const hours = Number(timeParts[0]), minutes = Number(timeParts[1]), seconds = Number(timeParts[2]);
+    if ([year, month, day, hours, minutes, seconds].some(isNaN)) return null;
+    const d = new Date(year, month - 1, day, hours, minutes, seconds);
+    return isNaN(d.getTime()) ? null : d;
+  } catch (e) { return null; }
+}
+
+function loadLogsForNotifications() {
+  db.ref("logs").on("value", snap => {
+    const data = snap.val() || {};
+    allLogs = [];
+    Object.keys(data).forEach(dispenserId => {
+      const dispenserLogs = data[dispenserId];
+      Object.keys(dispenserLogs).forEach(logKey => {
+        const logEntry = dispenserLogs[logKey];
+        if (!logEntry) return;
+        const parsedDate = parseTimestamp(logEntry.time);
+        if (!parsedDate) return;
+        const statusStr = logEntry.status || '';
+        const localStatus = firebaseStatusToLocal[statusStr] !== undefined
+          ? firebaseStatusToLocal[statusStr] : -1;
+        if (localStatus === -1) return;
+        allLogs.push({
+          dispenserId: logEntry.id || dispenserId,
+          status: localStatus,
+          statusStr: statusStr,
+          parsedDate: parsedDate,
+          timestamp: parsedDate.getTime()
+        });
+      });
+    });
+    logsLoaded = true;
+    if (notifPanelOpen || notifAnalyzed) {
+      runConsumptionAnalysis();
+    } else if (Object.keys(allDispenserStatuses).length > 0) {
+      runConsumptionAnalysis();
     }
-  }
-}
-
-function clearWaypointMarkers() {
-  waypointMarkers.forEach(marker => scene.remove(marker));
-  waypointMarkers = [];
-}
-
-function updateCameraPositionDisplay() {
-  const pos = camera.position;
-  document.getElementById('camera-position').textContent =
-    `X: ${pos.x.toFixed(1)}, Y: ${pos.y.toFixed(1)}, Z: ${pos.z.toFixed(1)}`;
-  
-  updateYouAreHereLabel();
-}
-
-function updateYouAreHereLabel() {
-  if (!dispensers3D.length) return;
-  // CHANGED: Find the current dispenser instead of DSP_1
-  const currentDispenser = dispensers3D.find(d => d.userData.id === SELECTED_DISPENSER_NUM);
-  if (!currentDispenser) return;
-  
-  const label = document.getElementById('youAreHereLabel');
-  const container = document.getElementById('canvas-container');
-  
-  const pos3D = currentDispenser.position.clone();
-  pos3D.y += 1.5;
-  
-  pos3D.project(camera);
-  
-  if (pos3D.z > 1) {
-    label.style.display = 'none';
-    return;
-  }
-  
-  const x = (pos3D.x * 0.5 + 0.5) * container.clientWidth;
-  const y = (-pos3D.y * 0.5 + 0.5) * container.clientHeight;
-  
-  if (x < 0 || x > container.clientWidth || y < 0 || y > container.clientHeight) {
-    label.style.display = 'none';
-    return;
-  }
-  
-  label.style.display = 'block';
-  label.style.left = x + 'px';
-  label.style.top = y + 'px';
-}
-
-function updateOnlineOfflineCounts() {
-  const now = Date.now();
-  let online = 0;
-  let offline = 0;
-  Object.keys(lastHeartbeat).forEach(id => {
-    const isOnline = now - lastHeartbeat[id] <= 70000;
-    if (isOnline) online++;
-    else offline++;
   });
-  document.getElementById("onlineCount").textContent = online;
-  document.getElementById("offlineCount").textContent = offline;
 }
 
-function renderStatusCards() {
-  const container = document.getElementById("statusCards");
-  container.innerHTML = "";
-  
-  const dispenserKeys = Object.keys(allDispenserStatuses).sort();
-  
-  const availableKeys = dispenserKeys.filter(id => {
-    if (id === SELECTED_DISPENSER_ID) return false;
-    const status = allDispenserStatuses[id];
-    return status === 2 || status === 3 || status === 4;
+function runConsumptionAnalysis() {
+  notifAnalyzed = true;
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yYear = yesterday.getFullYear();
+  const yMonth = yesterday.getMonth();
+  const yDay = yesterday.getDate();
+
+  const alerts = [];
+
+  MONITORED_DISPENSERS.forEach(dispenserId => {
+    const currentStatus = allDispenserStatuses[dispenserId];
+    if (currentStatus === undefined || currentStatus === 0) return;
+
+    const yesterdayLogs = allLogs.filter(l => {
+      if (l.dispenserId !== dispenserId) return false;
+      const d = l.parsedDate;
+      return d.getFullYear() === yYear && d.getMonth() === yMonth && d.getDate() === yDay;
+    });
+
+    if (yesterdayLogs.length === 0) return;
+
+    let closestLog = null;
+    let minTimeDiff = Infinity;
+    yesterdayLogs.forEach(l => {
+      const logMinutes = l.parsedDate.getHours() * 60 + l.parsedDate.getMinutes();
+      const diff = Math.abs(logMinutes - nowMinutes);
+      if (diff < minTimeDiff) { minTimeDiff = diff; closestLog = l; }
+    });
+
+    if (!closestLog) return;
+
+    const yesterdayStatus = closestLog.status;
+    const todayStatus = currentStatus;
+    const diff = yesterdayStatus - todayStatus;
+
+    if (diff === 0) return;
+
+    let severity, severityClass, message, direction;
+
+    if (diff > 0) {
+      direction = 'faster';
+      if (diff >= 3) {
+        severity = 'high'; severityClass = 'severity-high';
+        message = 'Drastically more water used compared to this time yesterday.';
+      } else if (diff === 2) {
+        severity = 'medium'; severityClass = 'severity-medium';
+        message = 'Noticeably more water used compared to this time yesterday.';
+      } else {
+        severity = 'low'; severityClass = 'severity-low';
+        message = 'Slightly more water used compared to this time yesterday.';
+      }
+    } else {
+      direction = 'slower';
+      const absDiff = Math.abs(diff);
+      if (absDiff >= 3) {
+        severity = 'great'; severityClass = 'severity-great';
+        message = 'Much less water used compared to this time yesterday.';
+      } else if (absDiff === 2) {
+        severity = 'good'; severityClass = 'severity-good';
+        message = 'Noticeably less water used compared to this time yesterday.';
+      } else {
+        severity = 'ok'; severityClass = 'severity-ok';
+        message = 'Slightly less water used compared to this time yesterday.';
+      }
+    }
+
+    const closestTime = closestLog.parsedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    alerts.push({
+      dispenserId, todayStatus, yesterdayStatus,
+      severity, severityClass, message, direction,
+      closestTime,
+      timeDiffMinutes: Math.round(minTimeDiff), diff
+    });
   });
-  
-  if (availableKeys.length === 0) {
-    container.innerHTML = '<div class="empty-state">No available dispensers found nearby</div>';
+
+  const severityOrder = { high: 0, medium: 1, low: 2, ok: 3, good: 4, great: 5 };
+  alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+
+  notifAlerts = alerts;
+  updateNotifBadge();
+  if (notifPanelOpen) renderNotifPanel();
+}
+
+function updateNotifBadge() {
+  const badge = document.getElementById('notifBadge');
+  if (notifAlerts.length > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = notifAlerts.length > 9 ? '9+' : notifAlerts.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function getStatusChipClass(statusVal) {
+  const map = { 0: 'chip-offline', 1: 'chip-empty', 2: 'chip-critical', 3: 'chip-mid', 4: 'chip-full' };
+  return map[statusVal] || 'chip-offline';
+}
+
+function renderNotifPanel() {
+  const list = document.getElementById('notifList');
+  const sub = document.getElementById('notifPanelSub');
+
+  const now = new Date();
+  sub.textContent = `Checked at ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} - Today vs Yesterday`;
+
+  if (!logsLoaded) {
+    list.innerHTML = `<div class="notif-loading"><div class="notif-spinner"></div><div>Loading logs...</div></div>`;
     return;
   }
-  
-  availableKeys.forEach(id => {
-    const status = allDispenserStatuses[id];
-    const info = dispenserInfo[id] || { name: id, location: 'Unknown' };
-    const statusClass = statusClasses[status] || 'status-offline';
-    const statusText = statusNames[status] || 'Unknown';
-    
-    const match = id.match(/DSP_(\d+)/i);
-    const localId = match ? parseInt(match[1]) : null;
-    const isSelected = manualRoutedDispenserId && localId === manualRoutedDispenserId;
-    
-    const cardHtml = `
-      <div class="status-card ${isSelected ? 'selected-route' : ''}" id="card-${id}" onclick="routeToDispenser('${escapeHtml(id)}')">
-        <div class="card-header">
-          <span>${escapeHtml(info.location)}</span>
-          ${isSelected ? '<span style="font-size:11px;color:#353ba7;">&#10003; Routing here</span>' : ''}
-        </div>
-        <div class="card-row">
-          <span class="card-label">Status:</span>
-          <span class="status-badge ${statusClass}" id="status-${id}">${escapeHtml(statusText)}</span>
-        </div>
-        <div class="click-hint">${isSelected ? 'Click to deselect' : 'Click to route here'}</div>
+
+  if (notifAlerts.length === 0) {
+    list.innerHTML = `
+      <div class="notif-empty-state">
+        <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">All good!</div>
+        <div>No unusual consumption compared to yesterday.</div>
       </div>`;
-    
-    container.innerHTML += cardHtml;
-  });
+    return;
+  }
+
+  list.innerHTML = notifAlerts.map(alert => {
+    const info = dispenserInfo[alert.dispenserId] || { location: alert.dispenserId };
+    const todayChip = getStatusChipClass(alert.todayStatus);
+    const yestChip = getStatusChipClass(alert.yesterdayStatus);
+    const isFaster = alert.direction === 'faster';
+    const trendClass = isFaster ? 'notif-trend-faster' : 'notif-trend-slower';
+    const trendText = isFaster ? 'Consuming faster than usual' : 'Consuming slower than usual';
+
+    return `
+      <div class="notif-item ${alert.severityClass}">
+        <div class="notif-dispenser-loc">${escapeHtml(info.location)}</div>
+        <div class="${trendClass}">${trendText}</div>
+        <div class="notif-msg">${escapeHtml(alert.message)}</div>
+        <div class="notif-status-row">
+          <span class="notif-status-chip ${yestChip}">Yesterday ${statusNames[alert.yesterdayStatus]}</span>
+          <span class="notif-arrow">to</span>
+          <span class="notif-status-chip ${todayChip}">Now ${statusNames[alert.todayStatus]}</span>
+        </div>
+        <div class="notif-meta">Compared to yesterday at ${escapeHtml(alert.closestTime)}</div>
+      </div>`;
+  }).join('');
 }
+
+setInterval(() => {
+  if (logsLoaded && Object.keys(allDispenserStatuses).length > 0) {
+    runConsumptionAnalysis();
+    if (notifPanelOpen) renderNotifPanel();
+  }
+}, 5 * 60 * 1000);
 
 // ================= FIREBASE INITIALIZATION =================
 async function initializeFirebase() {
@@ -527,6 +621,7 @@ async function initializeFirebase() {
         init3D();
         monitorDispenserStatus();
         checkExistingComplaint();
+        loadLogsForNotifications();
       })
       .catch((error) => {
         console.error("Auth error:", error);
@@ -589,20 +684,17 @@ function monitorDispenserStatus() {
       const localStatus = firebaseStatusToLocal[statusStr] !== undefined
         ? firebaseStatusToLocal[statusStr]
         : 0;
-
       trueFirebaseStatus[dispenserId] = localStatus;
-
       syncDispenser(dispenserId);
     });
     renderStatusCards();
     if (!manualRoutedDispenserId) findNearestDispenser();
     updateOnlineOfflineCounts();
+    if (logsLoaded) runConsumptionAnalysis();
   });
 
   db.ref("heartbeat").on("value", snap => {
     const data = snap.val() || {};
-    const now  = Date.now();
-
     Object.keys(data).forEach(dispenserId => {
       const d = data[dispenserId];
       if (d && d.epoch !== undefined) lastHeartbeat[dispenserId] = d.epoch;
@@ -664,7 +756,7 @@ function findNearestDispenser() {
 
   let nearest = null;
   let minHops = Infinity;
-  const startWP = dispenserToWaypoint[SELECTED_DISPENSER_NUM];  // CHANGED: from 1 to SELECTED_DISPENSER_NUM
+  const startWP = dispenserToWaypoint[SELECTED_DISPENSER_NUM];
 
   available.forEach(([id, status]) => {
     const match = id.match(/DSP_(\d+)/i);
@@ -691,7 +783,7 @@ function findNearestDispenser() {
       `<strong>Status:</strong> ${statusNames[nearest.status]}<br>` +
       `<strong>Waypoint Hops:</strong> ${minHops}`;
     setDispenserHighlight(nearest.dispenserId, OUTLINE_COLOR_AUTO);
-    update3DRoute(SELECTED_DISPENSER_NUM, nearest.dispenserId);  // CHANGED: from 1 to SELECTED_DISPENSER_NUM
+    update3DRoute(SELECTED_DISPENSER_NUM, nearest.dispenserId);
   } else {
     nearestDispenserId = null;
     clearRoute();
@@ -991,8 +1083,6 @@ function loadDispenserModel() {
           }
         }
       });
-      
-      // CHANGED: Only add ring to the current dispenser, not just DSP_1
       if (pos.id === SELECTED_DISPENSER_NUM) {
         const ringGeo = new THREE.RingGeometry(0.4, 0.65, 32);
         const ringMat = new THREE.MeshStandardMaterial({ color: 0x353ba7, emissive: 0x353ba7, emissiveIntensity: 0.8, side: THREE.DoubleSide });
@@ -1002,7 +1092,6 @@ function loadDispenserModel() {
         ring.userData.isYouAreHereRing = true;
         dispenser.add(ring);
       }
-      
       scene.add(dispenser);
       dispensers3D.push(dispenser);
     });
@@ -1020,14 +1109,11 @@ function checkLoadingComplete() {
       modelsLoaded.doors && modelsLoaded.windows && modelsLoaded.columns &&
       modelsLoaded.dispensers) {
     document.getElementById('loading-3d').style.display = 'none';
-
     sceneReady = true;
-
     Object.entries(pendingStatusUpdates).forEach(([localId, statusValue]) => {
       updateDispenser3DStatus(Number(localId), statusValue);
     });
     pendingStatusUpdates = {};
-
     const now = Date.now();
     Object.keys(trueFirebaseStatus).forEach(dispenserId => {
       const match = dispenserId.match(/DSP_(\d+)/i);
@@ -1046,7 +1132,6 @@ function updateDispenser3DStatus(dispenserId, statusValue) {
     pendingStatusUpdates[dispenserId] = statusValue;
     return;
   }
-
   const dispenser = dispensers3D.find(d => d.userData.id === dispenserId);
   if (!dispenser) return;
   dispenser.userData.status = statusValue;
@@ -1065,69 +1150,45 @@ function updateDispenser3DStatus(dispenserId, statusValue) {
 function setDispenserHighlight(localId, color) {
   clearDispenserHighlight();
   if (!localId) return;
-
   const dispenser = dispensers3D.find(d => d.userData.id === localId);
   if (!dispenser) return;
-
   const box = new THREE.Box3().setFromObject(dispenser);
   const size = new THREE.Vector3();
   const center = new THREE.Vector3();
   box.getSize(size);
   box.getCenter(center);
-
   const padding = 0.05;
   size.x += padding;
   size.z += padding;
-
   size.y = Math.min(size.y, 1.5);
   size.y += padding;
-
   center.y = box.min.y + size.y / 1.3;
-
   const boxGeo = new THREE.BoxGeometry(size.x, size.y, size.z);
-
-  const fillMat = new THREE.MeshBasicMaterial({
-    color: color,
-    transparent: true,
-    opacity: 0.05,
-    depthWrite: false,
-    side: THREE.FrontSide
-  });
+  const fillMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.05, depthWrite: false, side: THREE.FrontSide });
   const fillMesh = new THREE.Mesh(boxGeo, fillMat);
   fillMesh.position.copy(center);
-
   const edgeThickness = 0.031;
   const edgesGeo = new THREE.EdgesGeometry(boxGeo);
   const positions = edgesGeo.attributes.position;
   const edgeMat = new THREE.MeshBasicMaterial({ color: color });
-
   const edgesMesh = new THREE.Group();
   edgesMesh.position.copy(center);
-
   for (let i = 0; i < positions.count; i += 2) {
     const start = new THREE.Vector3().fromBufferAttribute(positions, i);
     const end   = new THREE.Vector3().fromBufferAttribute(positions, i + 1);
-
     const dir    = new THREE.Vector3().subVectors(end, start);
     const length = dir.length();
     const mid    = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
-
     const tubeGeo = new THREE.CylinderGeometry(edgeThickness, edgeThickness, length, 6, 1);
     const tube    = new THREE.Mesh(tubeGeo, edgeMat);
-
     tube.position.copy(mid);
-    tube.quaternion.setFromUnitVectors(
-      new THREE.Vector3(0, 1, 0),
-      dir.normalize()
-    );
+    tube.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
     edgesMesh.add(tube);
   }
-
   const group = new THREE.Group();
   group.userData.isOutline = true;
   group.add(fillMesh);
   group.add(edgesMesh);
-
   scene.add(group);
   highlightedDispenserOutline = group;
 }
@@ -1253,12 +1314,121 @@ function onWindowResize() {
   renderer.setSize(container.clientWidth, container.clientHeight);
 }
 
+function updateCameraPositionDisplay() {
+  const pos = camera.position;
+  document.getElementById('camera-position').textContent =
+    `X: ${pos.x.toFixed(1)}, Y: ${pos.y.toFixed(1)}, Z: ${pos.z.toFixed(1)}`;
+  updateYouAreHereLabel();
+}
+
+function updateYouAreHereLabel() {
+  if (!dispensers3D.length) return;
+  const currentDispenser = dispensers3D.find(d => d.userData.id === SELECTED_DISPENSER_NUM);
+  if (!currentDispenser) return;
+  const label = document.getElementById('youAreHereLabel');
+  const container = document.getElementById('canvas-container');
+  const pos3D = currentDispenser.position.clone();
+  pos3D.y += 1.5;
+  pos3D.project(camera);
+  if (pos3D.z > 1) { label.style.display = 'none'; return; }
+  const x = (pos3D.x * 0.5 + 0.5) * container.clientWidth;
+  const y = (-pos3D.y * 0.5 + 0.5) * container.clientHeight;
+  if (x < 0 || x > container.clientWidth || y < 0 || y > container.clientHeight) { label.style.display = 'none'; return; }
+  label.style.display = 'block';
+  label.style.left = x + 'px';
+  label.style.top = y + 'px';
+}
+
+function updateOnlineOfflineCounts() {
+  const now = Date.now();
+  let online = 0;
+  let offline = 0;
+  Object.keys(lastHeartbeat).forEach(id => {
+    const isOnline = now - lastHeartbeat[id] <= 70000;
+    if (isOnline) online++;
+    else offline++;
+  });
+  document.getElementById("onlineCount").textContent = online;
+  document.getElementById("offlineCount").textContent = offline;
+}
+
+function renderStatusCards() {
+  const container = document.getElementById("statusCards");
+  container.innerHTML = "";
+  const dispenserKeys = Object.keys(allDispenserStatuses).sort();
+  const availableKeys = dispenserKeys.filter(id => {
+    if (id === SELECTED_DISPENSER_ID) return false;
+    const status = allDispenserStatuses[id];
+    return status === 2 || status === 3 || status === 4;
+  });
+  if (availableKeys.length === 0) {
+    container.innerHTML = '<div class="empty-state">No available dispensers found nearby</div>';
+    return;
+  }
+  availableKeys.forEach(id => {
+    const status = allDispenserStatuses[id];
+    const info = dispenserInfo[id] || { name: id, location: 'Unknown' };
+    const statusClass = statusClasses[status] || 'status-offline';
+    const statusText = statusNames[status] || 'Unknown';
+    const match = id.match(/DSP_(\d+)/i);
+    const localId = match ? parseInt(match[1]) : null;
+    const isSelected = manualRoutedDispenserId && localId === manualRoutedDispenserId;
+    const cardHtml = `
+      <div class="status-card ${isSelected ? 'selected-route' : ''}" id="card-${id}" onclick="routeToDispenser('${escapeHtml(id)}')">
+        <div class="card-header">
+          <span>${escapeHtml(info.location)}</span>
+          ${isSelected ? '<span style="font-size:11px;color:#353ba7;">Routing here</span>' : ''}
+        </div>
+        <div class="card-row">
+          <span class="card-label">Status:</span>
+          <span class="status-badge ${statusClass}" id="status-${id}">${escapeHtml(statusText)}</span>
+        </div>
+        <div class="click-hint">${isSelected ? 'Click to deselect' : 'Click to route here'}</div>
+      </div>`;
+    container.innerHTML += cardHtml;
+  });
+}
+
+function createWaypointMarkers() {
+  clearWaypointMarkers();
+  for (const [name, waypoint] of Object.entries(navWaypoints)) {
+    const sphereGeo = new THREE.SphereGeometry(0.3, 16, 16);
+    let color;
+    if (waypoint.floor === 1) color = 0xff0000;
+    else if (waypoint.floor === 2) color = 0x0000ff;
+    else if (waypoint.floor === 3) color = 0x00ff00;
+    else if (waypoint.floor === 4) color = 0xff00ff;
+    else color = 0xffff00;
+    const sphereMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.5 });
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    sphere.position.copy(waypoint.pos);
+    sphere.userData.waypointName = name;
+    sphere.userData.isWaypoint = true;
+    scene.add(sphere);
+    waypointMarkers.push(sphere);
+  }
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xffff00 });
+  for (const [nodeName, connections] of Object.entries(navConnections)) {
+    const startPos = navWaypoints[nodeName].pos;
+    for (const connectedNode of connections) {
+      const endPos = navWaypoints[connectedNode].pos;
+      const geo = new THREE.BufferGeometry().setFromPoints([startPos, endPos]);
+      const line = new THREE.Line(geo, lineMat);
+      scene.add(line);
+      waypointMarkers.push(line);
+    }
+  }
+}
+
+function clearWaypointMarkers() {
+  waypointMarkers.forEach(marker => scene.remove(marker));
+  waypointMarkers = [];
+}
+
 let ringPulseTime = 0;
 function animate3D() {
   requestAnimationFrame(animate3D);
-  
   ringPulseTime += 0.04;
-  // CHANGED: Find current dispenser instead of DSP_1
   const currentDispenser = dispensers3D.find(d => d.userData.id === SELECTED_DISPENSER_NUM);
   if (currentDispenser) {
     currentDispenser.traverse(node => {
@@ -1269,7 +1439,6 @@ function animate3D() {
       }
     });
   }
-  
   arrowIndicators.forEach(arrow => {
     arrow.userData.basePosition += 0.002;
     if (arrow.userData.basePosition > 1) arrow.userData.basePosition = 0;
@@ -1287,7 +1456,6 @@ function animate3D() {
     const direction = new THREE.Vector3().subVectors(endPoint, startPoint).normalize();
     arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
   });
-  
   updateCamera();
   updateCameraPositionDisplay();
   renderer.render(scene, camera);
