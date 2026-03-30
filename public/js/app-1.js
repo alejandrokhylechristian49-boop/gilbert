@@ -448,15 +448,34 @@ function loadLogsForNotifications() {
   });
 }
 
+function getLatestLogDate(dispenserId) {
+  const today = new Date();
+  const todayDateStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+
+  const pastLogs = allLogs.filter(l => {
+    if (l.dispenserId !== dispenserId) return false;
+    const d = l.parsedDate;
+    const dStr = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    return dStr !== todayDateStr;
+  });
+
+  if (pastLogs.length === 0) return null;
+
+  pastLogs.sort((a, b) => b.timestamp - a.timestamp);
+  const latest = pastLogs[0].parsedDate;
+
+  return {
+    year: latest.getFullYear(),
+    month: latest.getMonth(),
+    day: latest.getDate(),
+    dateLabel: latest.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  };
+}
+
 function runConsumptionAnalysis() {
   notifAnalyzed = true;
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yYear = yesterday.getFullYear();
-  const yMonth = yesterday.getMonth();
-  const yDay = yesterday.getDate();
 
   const alerts = [];
 
@@ -464,17 +483,22 @@ function runConsumptionAnalysis() {
     const currentStatus = allDispenserStatuses[dispenserId];
     if (currentStatus === undefined || currentStatus === 0) return;
 
-    const yesterdayLogs = allLogs.filter(l => {
+    const latestDate = getLatestLogDate(dispenserId);
+    if (!latestDate) return;
+
+    const { year: refYear, month: refMonth, day: refDay, dateLabel } = latestDate;
+
+    const refLogs = allLogs.filter(l => {
       if (l.dispenserId !== dispenserId) return false;
       const d = l.parsedDate;
-      return d.getFullYear() === yYear && d.getMonth() === yMonth && d.getDate() === yDay;
+      return d.getFullYear() === refYear && d.getMonth() === refMonth && d.getDate() === refDay;
     });
 
-    if (yesterdayLogs.length === 0) return;
+    if (refLogs.length === 0) return;
 
     let closestLog = null;
     let minTimeDiff = Infinity;
-    yesterdayLogs.forEach(l => {
+    refLogs.forEach(l => {
       const logMinutes = l.parsedDate.getHours() * 60 + l.parsedDate.getMinutes();
       const diff = Math.abs(logMinutes - nowMinutes);
       if (diff < minTimeDiff) { minTimeDiff = diff; closestLog = l; }
@@ -482,9 +506,9 @@ function runConsumptionAnalysis() {
 
     if (!closestLog) return;
 
-    const yesterdayStatus = closestLog.status;
+    const refStatus = closestLog.status;
     const todayStatus = currentStatus;
-    const diff = yesterdayStatus - todayStatus;
+    const diff = refStatus - todayStatus;
 
     if (diff === 0) return;
 
@@ -494,35 +518,35 @@ function runConsumptionAnalysis() {
       direction = 'faster';
       if (diff >= 3) {
         severity = 'high'; severityClass = 'severity-high';
-        message = 'Drastically more water used compared to this time yesterday.';
+        message = `Drastically more water used compared to ${dateLabel}.`;
       } else if (diff === 2) {
         severity = 'medium'; severityClass = 'severity-medium';
-        message = 'Noticeably more water used compared to this time yesterday.';
+        message = `Noticeably more water used compared to ${dateLabel}.`;
       } else {
         severity = 'low'; severityClass = 'severity-low';
-        message = 'Slightly more water used compared to this time yesterday.';
+        message = `Slightly more water used compared to ${dateLabel}.`;
       }
     } else {
       direction = 'slower';
       const absDiff = Math.abs(diff);
       if (absDiff >= 3) {
         severity = 'great'; severityClass = 'severity-great';
-        message = 'Much less water used compared to this time yesterday.';
+        message = `Much less water used compared to ${dateLabel}.`;
       } else if (absDiff === 2) {
         severity = 'good'; severityClass = 'severity-good';
-        message = 'Noticeably less water used compared to this time yesterday.';
+        message = `Noticeably less water used compared to ${dateLabel}.`;
       } else {
         severity = 'ok'; severityClass = 'severity-ok';
-        message = 'Slightly less water used compared to this time yesterday.';
+        message = `Slightly less water used compared to ${dateLabel}.`;
       }
     }
 
     const closestTime = closestLog.parsedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
     alerts.push({
-      dispenserId, todayStatus, yesterdayStatus,
+      dispenserId, todayStatus, refStatus,
       severity, severityClass, message, direction,
-      closestTime,
+      closestTime, dateLabel,
       timeDiffMinutes: Math.round(minTimeDiff), diff
     });
   });
@@ -555,7 +579,7 @@ function renderNotifPanel() {
   const sub = document.getElementById('notifPanelSub');
 
   const now = new Date();
-  sub.textContent = `Checked at ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} - Today vs Yesterday`;
+  sub.textContent = `Checked at ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} - Today vs Latest Log Date`;
 
   if (!logsLoaded) {
     list.innerHTML = `<div class="notif-loading"><div class="notif-spinner"></div><div>Loading logs...</div></div>`;
@@ -566,7 +590,7 @@ function renderNotifPanel() {
     list.innerHTML = `
       <div class="notif-empty-state">
         <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">All good!</div>
-        <div>No unusual consumption compared to yesterday.</div>
+        <div>No unusual consumption compared to the latest log date.</div>
       </div>`;
     return;
   }
@@ -574,7 +598,7 @@ function renderNotifPanel() {
   list.innerHTML = notifAlerts.map(alert => {
     const info = dispenserInfo[alert.dispenserId] || { location: alert.dispenserId };
     const todayChip = getStatusChipClass(alert.todayStatus);
-    const yestChip = getStatusChipClass(alert.yesterdayStatus);
+    const refChip = getStatusChipClass(alert.refStatus);
     const isFaster = alert.direction === 'faster';
     const trendClass = isFaster ? 'notif-trend-faster' : 'notif-trend-slower';
     const trendText = isFaster ? 'Consuming faster than usual' : 'Consuming slower than usual';
@@ -585,11 +609,11 @@ function renderNotifPanel() {
         <div class="${trendClass}">${trendText}</div>
         <div class="notif-msg">${escapeHtml(alert.message)}</div>
         <div class="notif-status-row">
-          <span class="notif-status-chip ${yestChip}">Yesterday ${statusNames[alert.yesterdayStatus]}</span>
+          <span class="notif-status-chip ${refChip}">${escapeHtml(alert.dateLabel)} ${statusNames[alert.refStatus]}</span>
           <span class="notif-arrow">to</span>
           <span class="notif-status-chip ${todayChip}">Now ${statusNames[alert.todayStatus]}</span>
         </div>
-        <div class="notif-meta">Compared to yesterday at ${escapeHtml(alert.closestTime)}</div>
+        <div class="notif-meta">Compared to ${escapeHtml(alert.dateLabel)} at ${escapeHtml(alert.closestTime)}</div>
       </div>`;
   }).join('');
 }
