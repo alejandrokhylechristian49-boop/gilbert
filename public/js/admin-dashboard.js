@@ -15,7 +15,6 @@ function toggleTheme(isDark) {
     applyTheme(isDark);
 }
 
-// Sync theme on load
 (function() {
     const saved = localStorage.getItem('adminTheme') || 'light';
     const isDark = saved === 'dark';
@@ -24,7 +23,6 @@ function toggleTheme(isDark) {
     applyTheme(isDark);
 })();
 
-// Theme toggle event
 const themeCheckbox = document.getElementById('themeCheckbox');
 if (themeCheckbox) {
     themeCheckbox.addEventListener('change', function(e) {
@@ -44,7 +42,6 @@ if (hamburgerBtn) {
     });
 }
 
-// Close mobile menu when clicking a link
 document.querySelectorAll('.mobile-item').forEach(el => {
     el.addEventListener('click', () => {
         mobileMenu.classList.remove('active');
@@ -55,19 +52,14 @@ document.querySelectorAll('.mobile-item').forEach(el => {
 // ================= LOGOUT FUNCTIONS =================
 function showLogoutModal() {
     const modal = document.getElementById('logoutModal');
-    if (modal) {
-        modal.classList.add('active');
-    }
-    // Close mobile menu if open
+    if (modal) modal.classList.add('active');
     if (mobileMenu) mobileMenu.classList.remove('active');
     if (hamburgerBtn) hamburgerBtn.classList.remove('active');
 }
 
 function closeLogoutModal() {
     const modal = document.getElementById('logoutModal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
+    if (modal) modal.classList.remove('active');
 }
 
 function confirmLogout() {
@@ -75,7 +67,6 @@ function confirmLogout() {
     window.location.replace("loginadmin");
 }
 
-// Logout button event listeners
 const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
 const desktopLogoutBtn = document.getElementById('desktopLogoutBtn');
 const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
@@ -86,7 +77,6 @@ if (desktopLogoutBtn) desktopLogoutBtn.addEventListener('click', showLogoutModal
 if (cancelLogoutBtn) cancelLogoutBtn.addEventListener('click', closeLogoutModal);
 if (confirmLogoutBtn) confirmLogoutBtn.addEventListener('click', confirmLogout);
 
-// Close modal when clicking outside
 window.addEventListener('click', function(e) {
     const modal = document.getElementById('logoutModal');
     if (modal && modal.classList.contains('active') && e.target === modal) {
@@ -94,11 +84,8 @@ window.addEventListener('click', function(e) {
     }
 });
 
-// Close modal on ESC key
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeLogoutModal();
-    }
+    if (e.key === 'Escape') closeLogoutModal();
 });
 
 // ================= GLOBAL VARIABLES =================
@@ -112,6 +99,15 @@ let lastDispenserTime = {};
 let selectedDispenserId = null;
 let selectedDispenserOutline = null;
 let selectedFromComplaint = false;
+
+// NOTIFICATION STATE
+let allLogs = [];
+let logsLoaded = false;
+let notifAlerts = [];
+let notifPanelOpen = false;
+let notifAnalyzed = false;
+
+const MONITORED_DISPENSERS = ['DSP_1', 'DSP_3', 'DSP_4', 'DSP_7', 'DSP_8'];
 
 // THREE.JS Variables
 let scene, camera, renderer;
@@ -130,11 +126,9 @@ const CAM_Z_MAX = 12.20;
 let cameraZ = (CAM_Z_MIN + CAM_Z_MAX) / 2;
 const LOOK_OFFSET_X = -10;
 
-// Constants
 const OUTLINE_COLOR = 0x353ba7;
 const COMPLAINT_OUTLINE_COLOR = 0xdc3545;
 
-// Status mappings
 const statusColors = {
     0: 0x808080, 1: 0xff4444, 2: 0xCC0000, 3: 0xffeb3b, 4: 0x4CAF50
 };
@@ -176,13 +170,9 @@ const dispenserPositions = [
     { id: 1, x: -1.5, y: 2.0, z: 4, rotation: 0, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Entrance" },
     { id: 2, x: -4.8, y: 2.0, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Front Right" },
     { id: 3, x: -4.8, y: 2.0, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Back Right" },
-    // SWAPPED: DSP_4 (Computer Lab 4) now at Front Left position (was DSP_6)
     { id: 4, x: -4.8, y: 3.80, z: 14, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Left" },
-    // SWAPPED: DSP_5 (Computer Lab 5) now at Back Left position (was DSP_7)
     { id: 5, x: -4.8, y: 3.80, z: 21.5, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Left" },
-    // SWAPPED: DSP_6 (Front Left) now at Front Right position (was DSP_4)
     { id: 6, x: -4.8, y: 3.80, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Right" },
-    // SWAPPED: DSP_7 (COE Office) now at Back Right position (was DSP_5)
     { id: 7, x: -4.8, y: 3.80, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Right" },
     { id: 8, x: -4.8, y: 5.50, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Front Right" },
     { id: 9, x: -4.8, y: 5.50, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Back Right" },
@@ -202,6 +192,237 @@ function escapeHtml(s) {
         .replace(/'/g, "&#39;");
 }
 
+// ================= NOTIFICATION FUNCTIONS =================
+
+window.toggleNotifPanel = function() {
+    if (notifPanelOpen) { closeNotifPanel(); } else { openNotifPanel(); }
+};
+
+window.openNotifPanel = function() {
+    notifPanelOpen = true;
+    document.getElementById('notifPanel').style.display = 'block';
+    document.getElementById('notifBackdrop').classList.add('open');
+    if (logsLoaded && Object.keys(allDispenserStatuses).length > 0) {
+        runConsumptionAnalysis();
+    }
+};
+
+window.closeNotifPanel = function() {
+    notifPanelOpen = false;
+    document.getElementById('notifPanel').style.display = 'none';
+    document.getElementById('notifBackdrop').classList.remove('open');
+};
+
+function parseTimestamp(timeStr) {
+    if (!timeStr || typeof timeStr !== 'string') return null;
+    try {
+        const parts = timeStr.split(',');
+        if (parts.length < 2) return null;
+        const dateTimePart = parts[1].trim();
+        const dateTimeComponents = dateTimePart.split(' ');
+        if (dateTimeComponents.length < 2) return null;
+        const datePart = dateTimeComponents[0];
+        const timePart = dateTimeComponents[1];
+        if (!datePart || !timePart) return null;
+        const dateParts = datePart.split('-');
+        const timeParts = timePart.split(':');
+        if (dateParts.length !== 3 || timeParts.length !== 3) return null;
+        const year = Number(dateParts[0]), month = Number(dateParts[1]), day = Number(dateParts[2]);
+        const hours = Number(timeParts[0]), minutes = Number(timeParts[1]), seconds = Number(timeParts[2]);
+        if ([year, month, day, hours, minutes, seconds].some(isNaN)) return null;
+        const d = new Date(year, month - 1, day, hours, minutes, seconds);
+        return isNaN(d.getTime()) ? null : d;
+    } catch (e) { return null; }
+}
+
+function loadLogsForNotifications() {
+    db.ref("logs").on("value", snap => {
+        const data = snap.val() || {};
+        allLogs = [];
+        Object.keys(data).forEach(dispenserId => {
+            const dispenserLogs = data[dispenserId];
+            Object.keys(dispenserLogs).forEach(logKey => {
+                const logEntry = dispenserLogs[logKey];
+                if (!logEntry) return;
+                const parsedDate = parseTimestamp(logEntry.time);
+                if (!parsedDate) return;
+                const statusStr = logEntry.status || '';
+                const localStatus = firebaseStatusToLocal[statusStr] !== undefined
+                    ? firebaseStatusToLocal[statusStr] : -1;
+                if (localStatus === -1) return;
+                allLogs.push({
+                    dispenserId: logEntry.id || dispenserId,
+                    status: localStatus,
+                    statusStr: statusStr,
+                    parsedDate: parsedDate,
+                    timestamp: parsedDate.getTime()
+                });
+            });
+        });
+        logsLoaded = true;
+        if (notifPanelOpen || notifAnalyzed) {
+            runConsumptionAnalysis();
+        } else if (Object.keys(allDispenserStatuses).length > 0) {
+            runConsumptionAnalysis();
+        }
+    });
+}
+
+function runConsumptionAnalysis() {
+    notifAnalyzed = true;
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yYear = yesterday.getFullYear();
+    const yMonth = yesterday.getMonth();
+    const yDay = yesterday.getDate();
+
+    const alerts = [];
+
+    MONITORED_DISPENSERS.forEach(dispenserId => {
+        const currentStatus = allDispenserStatuses[dispenserId];
+        if (currentStatus === undefined || currentStatus === 0) return;
+
+        const yesterdayLogs = allLogs.filter(l => {
+            if (l.dispenserId !== dispenserId) return false;
+            const d = l.parsedDate;
+            return d.getFullYear() === yYear && d.getMonth() === yMonth && d.getDate() === yDay;
+        });
+
+        if (yesterdayLogs.length === 0) return;
+
+        let closestLog = null;
+        let minTimeDiff = Infinity;
+        yesterdayLogs.forEach(l => {
+            const logMinutes = l.parsedDate.getHours() * 60 + l.parsedDate.getMinutes();
+            const diff = Math.abs(logMinutes - nowMinutes);
+            if (diff < minTimeDiff) { minTimeDiff = diff; closestLog = l; }
+        });
+
+        if (!closestLog) return;
+
+        const yesterdayStatus = closestLog.status;
+        const todayStatus = currentStatus;
+        const diff = yesterdayStatus - todayStatus;
+
+        if (diff === 0) return;
+
+        let severity, severityClass, message, direction;
+
+        if (diff > 0) {
+            direction = 'faster';
+            if (diff >= 3) {
+                severity = 'high'; severityClass = 'severity-high';
+                message = 'Drastically more water used compared to this time yesterday.';
+            } else if (diff === 2) {
+                severity = 'medium'; severityClass = 'severity-medium';
+                message = 'Noticeably more water used compared to this time yesterday.';
+            } else {
+                severity = 'low'; severityClass = 'severity-low';
+                message = 'Slightly more water used compared to this time yesterday.';
+            }
+        } else {
+            direction = 'slower';
+            const absDiff = Math.abs(diff);
+            if (absDiff >= 3) {
+                severity = 'great'; severityClass = 'severity-great';
+                message = 'Much less water used compared to this time yesterday.';
+            } else if (absDiff === 2) {
+                severity = 'good'; severityClass = 'severity-good';
+                message = 'Noticeably less water used compared to this time yesterday.';
+            } else {
+                severity = 'ok'; severityClass = 'severity-ok';
+                message = 'Slightly less water used compared to this time yesterday.';
+            }
+        }
+
+        const closestTime = closestLog.parsedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+        alerts.push({
+            dispenserId, todayStatus, yesterdayStatus,
+            severity, severityClass, message, direction,
+            closestTime,
+            timeDiffMinutes: Math.round(minTimeDiff), diff
+        });
+    });
+
+    const severityOrder = { high: 0, medium: 1, low: 2, ok: 3, good: 4, great: 5 };
+    alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+
+    notifAlerts = alerts;
+    updateNotifBadge();
+    if (notifPanelOpen) renderNotifPanel();
+}
+
+function updateNotifBadge() {
+    const badge = document.getElementById('notifBadge');
+    if (!badge) return;
+    if (notifAlerts.length > 0) {
+        badge.style.display = 'flex';
+        badge.textContent = notifAlerts.length > 9 ? '9+' : notifAlerts.length;
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function getStatusChipClass(statusVal) {
+    const map = { 0: 'chip-offline', 1: 'chip-empty', 2: 'chip-critical', 3: 'chip-mid', 4: 'chip-full' };
+    return map[statusVal] || 'chip-offline';
+}
+
+function renderNotifPanel() {
+    const list = document.getElementById('notifList');
+    const sub = document.getElementById('notifPanelSub');
+    if (!list) return;
+
+    const now = new Date();
+    if (sub) sub.textContent = `Checked at ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} - Today vs Yesterday`;
+
+    if (!logsLoaded) {
+        list.innerHTML = `<div class="notif-loading"><div class="notif-spinner"></div><div>Loading logs...</div></div>`;
+        return;
+    }
+
+    if (notifAlerts.length === 0) {
+        list.innerHTML = `
+            <div class="notif-empty-state">
+                <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">All good!</div>
+                <div>No unusual consumption compared to yesterday.</div>
+            </div>`;
+        return;
+    }
+
+    list.innerHTML = notifAlerts.map(alert => {
+        const info = dispenserInfo[alert.dispenserId] || { location: alert.dispenserId };
+        const todayChip = getStatusChipClass(alert.todayStatus);
+        const yestChip = getStatusChipClass(alert.yesterdayStatus);
+        const isFaster = alert.direction === 'faster';
+        const trendClass = isFaster ? 'notif-trend-faster' : 'notif-trend-slower';
+        const trendText = isFaster ? 'Consuming faster than usual' : 'Consuming slower than usual';
+
+        return `
+            <div class="notif-item ${alert.severityClass}">
+                <div class="notif-dispenser-loc">${escapeHtml(info.location)}</div>
+                <div class="${trendClass}">${trendText}</div>
+                <div class="notif-msg">${escapeHtml(alert.message)}</div>
+                <div class="notif-status-row">
+                    <span class="notif-status-chip ${yestChip}">Yesterday ${statusNames[alert.yesterdayStatus]}</span>
+                    <span class="notif-arrow">to</span>
+                    <span class="notif-status-chip ${todayChip}">Now ${statusNames[alert.todayStatus]}</span>
+                </div>
+                <div class="notif-meta">Compared to yesterday at ${escapeHtml(alert.closestTime)}</div>
+            </div>`;
+    }).join('');
+}
+
+setInterval(() => {
+    if (logsLoaded && Object.keys(allDispenserStatuses).length > 0) {
+        runConsumptionAnalysis();
+        if (notifPanelOpen) renderNotifPanel();
+    }
+}, 5 * 60 * 1000);
+
 // ================= FIREBASE INITIALIZATION =================
 async function initializeFirebase() {
     try {
@@ -217,6 +438,7 @@ async function initializeFirebase() {
                 console.log("Signed in successfully");
                 init3D();
                 loadDashboardData();
+                loadLogsForNotifications();
             })
             .catch((error) => {
                 console.error("Auth error:", error);
@@ -254,11 +476,11 @@ function loadDashboardData() {
             if (m) updateDispenser3DStatus(parseInt(m[1]), s);
         });
         document.getElementById('loading').style.display = 'none';
+        if (logsLoaded) runConsumptionAnalysis();
     });
 
     db.ref("heartbeat").on("value", snap => {
         const data = snap.val() || {};
-        const now = Date.now();
 
         Object.keys(data).forEach(id => {
             const d = data[id];
@@ -274,9 +496,7 @@ function loadDashboardData() {
             if (m) updateDispenser3DStatus(parseInt(m[1]), allDispenserStatuses[id]);
         });
 
-        if (changed) {
-            renderStatusCards();
-        }
+        if (changed) renderStatusCards();
     });
 
     db.ref("complaints").on("value", snap => {
@@ -304,9 +524,7 @@ function loadDashboardData() {
             const m = id.match(/DSP_(\d+)/i);
             if (m) updateDispenser3DStatus(parseInt(m[1]), allDispenserStatuses[id]);
         });
-        if (changed) {
-            renderStatusCards();
-        }
+        if (changed) renderStatusCards();
     }, 1000);
 }
 
@@ -639,7 +857,6 @@ function updateDispenser3DStatus(dispenserId, statusValue) {
         pendingStatusUpdates[dispenserId] = statusValue;
         return;
     }
-
     const dispenser = dispensers3D.find(d => d.userData.id === dispenserId);
     if (!dispenser) return;
     dispenser.userData.status = statusValue;
@@ -685,14 +902,7 @@ function highlightDispenser(localId, isFromComplaint = false) {
     center.y = box.min.y + size.y / 1.3;
 
     const boxGeo = new THREE.BoxGeometry(size.x, size.y, size.z);
-
-    const fillMat = new THREE.MeshBasicMaterial({
-        color: outlineColor,
-        transparent: true,
-        opacity: 0.05,
-        depthWrite: false,
-        side: THREE.FrontSide
-    });
+    const fillMat = new THREE.MeshBasicMaterial({ color: outlineColor, transparent: true, opacity: 0.05, depthWrite: false, side: THREE.FrontSide });
     const fillMesh = new THREE.Mesh(boxGeo, fillMat);
     fillMesh.position.copy(center);
 
@@ -700,7 +910,6 @@ function highlightDispenser(localId, isFromComplaint = false) {
     const edgesGeo = new THREE.EdgesGeometry(boxGeo);
     const positions = edgesGeo.attributes.position;
     const edgeMat = new THREE.MeshBasicMaterial({ color: outlineColor });
-
     const edgesGroup = new THREE.Group();
     edgesGroup.position.copy(center);
 
@@ -721,7 +930,6 @@ function highlightDispenser(localId, isFromComplaint = false) {
     group.userData.isOutline = true;
     group.add(fillMesh);
     group.add(edgesGroup);
-
     scene.add(group);
     selectedDispenserOutline = group;
 
@@ -818,7 +1026,7 @@ function onWindowResize() {
 let emptyPulseTime = 0;
 function animate3D() {
     requestAnimationFrame(animate3D);
-    
+
     emptyPulseTime += 0.05;
     dispensers3D.forEach(d => {
         const id = `DSP_${d.userData.id}`;
