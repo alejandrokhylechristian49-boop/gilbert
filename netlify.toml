@@ -44,6 +44,11 @@
   from = "/proto2"
   to = "/proto2.html"
   status = 200
+  
+  [[redirects]]
+  from = "/sarima_frontend"
+  to = "/sarima_frontend.html"
+  status = 200
 
 
   [[redirects]]
