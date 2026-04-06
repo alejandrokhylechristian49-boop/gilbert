@@ -107,7 +107,12 @@ function loadLogs() {
         }
       });
     });
-    allLogs.sort((a, b) => b.timestamp - a.timestamp);
+    allLogs = allLogs.filter(log => {
+  const h = log.parsedDate.getHours();
+  const m = log.parsedDate.getMinutes();
+  const s = log.parsedDate.getSeconds();
+  return h >= 7 && (h < 16 || (h === 16 && m === 0 && s <= 59));
+});
     console.log(`Loaded ${allLogs.length} valid logs`);
     if (skippedLogs > 0) console.warn(`Skipped ${skippedLogs} logs with invalid or missing timestamps`);
     paginateLogs(allLogs);
