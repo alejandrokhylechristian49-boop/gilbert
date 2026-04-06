@@ -750,9 +750,22 @@ async function loadConfig() {
   /**
    * Fetch all cumulative forecasts for a dispenser from the backend.
    * Returns: dateStr → {forecast, mape, rmse, matchedPoints, trainingDays, peaks, refills, gallons}
+   * Results are cached in sessionStorage for the duration of the browser session.
    */
   async function buildAllForecasts(dispenserRecords) {
     if (!dispenserRecords.length) return {};
+
+    // Build a lightweight cache key from dispenser + sorted date range
+    const dates = [...new Set(dispenserRecords.map(r => r.dateStr))].sort();
+    const cacheKey = `fc_${currentDispenser}_${dates[0]}_${dates[dates.length - 1]}_${dispenserRecords.length}`;
+    try {
+      const stored = sessionStorage.getItem(cacheKey);
+      if (stored) {
+        console.log('[SARIMA] sessionStorage HIT:', cacheKey);
+        return JSON.parse(stored);
+      }
+    } catch (_) {}
+
     try {
       const resp = await fetch(`${API_BASE}/api/forecast`, {
         method:  'POST',
@@ -760,7 +773,9 @@ async function loadConfig() {
         body:    JSON.stringify({ dispenserId: currentDispenser, records: dispenserRecords })
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      return await resp.json();
+      const result = await resp.json();
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(result)); } catch (_) {}
+      return result;
     } catch (err) {
       console.error('[SARIMA] /api/forecast failed:', err);
       return {};
@@ -770,9 +785,21 @@ async function loadConfig() {
   /**
    * Fetch next-workday extended forecast from the backend.
    * Returns: {forecastArr, targetDate, trainingDays, peaks, refills, gallons} or null.
+   * Results are cached in sessionStorage.
    */
   async function buildExtendedForecastFromAPI(dispenserRecords) {
     if (!dispenserRecords.length) return null;
+
+    const dates = [...new Set(dispenserRecords.map(r => r.dateStr))].sort();
+    const cacheKey = `ext_${currentDispenser}_${dates[dates.length - 1]}_${dispenserRecords.length}`;
+    try {
+      const stored = sessionStorage.getItem(cacheKey);
+      if (stored) {
+        console.log('[SARIMA] sessionStorage HIT (extended):', cacheKey);
+        return JSON.parse(stored);
+      }
+    } catch (_) {}
+
     try {
       const resp = await fetch(`${API_BASE}/api/forecast/extended`, {
         method:  'POST',
@@ -782,6 +809,7 @@ async function loadConfig() {
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       if (data.error) return null;
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch (_) {}
       return data;
     } catch (err) {
       console.error('[SARIMA] /api/forecast/extended failed:', err);
@@ -925,26 +953,19 @@ async function loadConfig() {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('tableContent').style.display = 'block';
 
-    // Build SARIMA forecasts (now via backend API)
-    const dispenserRecs = filtered.map(r => ({ dateStr: r.date, timeStr: r.timeStr, numericValue: r.numericValue }));
-    const fcMap = await buildAllForecasts(dispenserRecs);
-    forecastCache.set(dispenserId, fcMap);
-
-    // Build weeks
+    // Build weeks immediately so the graph shows actual data right away
     const asc2 = [...filtered].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
     weeksList = buildWeeks(asc2);
 
-    // On refresh: restore the week + day the user was viewing
-    // so a background update doesn't jump the view
+    // Render graph immediately with actual data (no forecast yet)
+    forecastCache.set(dispenserId, {});
     if (isRefresh && restoreDay && restoreWeekIdx < weeksList.length) {
       currentWeekIndex = restoreWeekIdx;
       buildWeekTabs();
       buildDayTabs();
-      // Re-render the same day if it still exists in the new data
       const week = weeksList[currentWeekIndex];
       if (week && week.days[restoreDay]) {
         currentSelectedDay = restoreDay;
-        // Mark the correct day tab active
         document.querySelectorAll('.day-tab').forEach(b => {
           if (b.textContent.startsWith(restoreDay.substring(0,3))) b.classList.add('active');
         });
@@ -957,6 +978,26 @@ async function loadConfig() {
       buildWeekTabs();
       buildDayTabs();
       selectFirstAvailableDay();
+    }
+
+    // Show a subtle loading indicator that forecast is computing
+    const statsEl = document.getElementById('stats');
+    const originalStats = statsEl.innerHTML;
+    statsEl.innerHTML = originalStats + ' &nbsp;<span id="fcLoadingBadge" style="background:#1a2c3e;color:white;font-size:0.7rem;padding:2px 8px;border-radius:10px;vertical-align:middle;">⏳ Loading forecast…</span>';
+
+    // Fetch forecast in the background — graph is already visible
+    const dispenserRecs = filtered.map(r => ({ dateStr: r.date, timeStr: r.timeStr, numericValue: r.numericValue }));
+    const fcMap = await buildAllForecasts(dispenserRecs);
+    forecastCache.set(dispenserId, fcMap);
+
+    // Remove the loading badge
+    const badge = document.getElementById('fcLoadingBadge');
+    if (badge) badge.remove();
+
+    // Re-render to overlay the forecast lines + update day tab FC pills
+    buildDayTabs();
+    if (currentSelectedDay) {
+      renderGraph(currentSelectedDay, currentWeekIndex);
     }
   }
 
