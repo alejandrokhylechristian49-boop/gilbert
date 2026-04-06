@@ -245,9 +245,9 @@ function updateDateRange() {
 }
 function getLogsInRange(startDateStr, endDateStr, dispenserFilter) {
   const start = new Date(startDateStr);
-  start.setHours(0, 0, 0, 0);
+  start.setHours(7, 0, 0, 0);
   const end = new Date(endDateStr);
-  end.setHours(23, 59, 59, 999);
+  end.setHours(16, 0, 59, 999);
   return allLogs.filter(log => {
     if (!log.parsedDate) return false;
     const logTime = log.parsedDate.getTime();
