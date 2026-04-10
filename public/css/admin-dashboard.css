@@ -1231,3 +1231,43 @@ h2 {
         align-items: flex-start;
     }
 }
+@media (max-width: 480px) {
+    .header-container {
+        padding: 10px 10px;
+        gap: 6px;
+    }
+    h1 {
+        font-size: 14px;
+        letter-spacing: 0;
+    }
+    .header-right {
+        gap: 6px;
+    }
+    .notif-bell-wrap {
+        padding: 0 7px;
+        height: 28px;
+    }
+    .theme-switch-wrap {
+        gap: 3px;
+    }
+    .theme-icon {
+        font-size: 12px;
+    }
+    .switch-track {
+        width: 34px;
+        height: 20px;
+    }
+    .switch-thumb {
+        width: 13px;
+        height: 13px;
+    }
+    .theme-switch-wrap input:checked ~ .switch-track .switch-thumb {
+        transform: translateX(14px);
+    }
+    .header-left {
+        min-width: 40px;
+    }
+    .header-right {
+        min-width: 40px;
+    }
+}
