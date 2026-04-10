@@ -11,9 +11,7 @@ function applyTheme(isDark) {
     if (checkbox) checkbox.checked = isDark;
 }
 
-function toggleTheme(isDark) {
-    applyTheme(isDark);
-}
+function toggleTheme(isDark) { applyTheme(isDark); }
 
 (function() {
     const saved = localStorage.getItem('adminTheme') || 'light';
@@ -25,9 +23,7 @@ function toggleTheme(isDark) {
 
 const themeCheckbox = document.getElementById('themeCheckbox');
 if (themeCheckbox) {
-    themeCheckbox.addEventListener('change', function(e) {
-        toggleTheme(e.target.checked);
-    });
+    themeCheckbox.addEventListener('change', function(e) { toggleTheme(e.target.checked); });
 }
 
 // ================= HAMBURGER MENU =================
@@ -67,25 +63,28 @@ function confirmLogout() {
     window.location.replace("loginadmin");
 }
 
-const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+const mobileLogoutBtn  = document.getElementById('mobileLogoutBtn');
 const desktopLogoutBtn = document.getElementById('desktopLogoutBtn');
-const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
+const cancelLogoutBtn  = document.getElementById('cancelLogoutBtn');
 const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
 
-if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', showLogoutModal);
+if (mobileLogoutBtn)  mobileLogoutBtn.addEventListener('click', showLogoutModal);
 if (desktopLogoutBtn) desktopLogoutBtn.addEventListener('click', showLogoutModal);
-if (cancelLogoutBtn) cancelLogoutBtn.addEventListener('click', closeLogoutModal);
+if (cancelLogoutBtn)  cancelLogoutBtn.addEventListener('click', closeLogoutModal);
 if (confirmLogoutBtn) confirmLogoutBtn.addEventListener('click', confirmLogout);
 
 window.addEventListener('click', function(e) {
     const modal = document.getElementById('logoutModal');
-    if (modal && modal.classList.contains('active') && e.target === modal) {
-        closeLogoutModal();
-    }
+    if (modal && modal.classList.contains('active') && e.target === modal) closeLogoutModal();
 });
 
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeLogoutModal();
+    if (e.key === 'Escape') {
+        closeLogoutModal();
+        closeHistoryModal();
+        closeComplaintBell();
+        closeNotifPanel();
+    }
 });
 
 // ================= GLOBAL VARIABLES =================
@@ -107,6 +106,14 @@ let notifAlerts = [];
 let notifPanelOpen = false;
 let notifAnalyzed = false;
 
+// COMPLAINT BELL STATE
+let complaintBellOpen = false;
+
+// HISTORY STATE
+let allHistoryRecords = [];
+let filteredHistoryRecords = [];
+let historyLoaded = false;
+
 const MONITORED_DISPENSERS = ['DSP_1', 'DSP_3', 'DSP_4', 'DSP_7', 'DSP_8'];
 
 // THREE.JS Variables
@@ -118,7 +125,6 @@ let controls3D = { mouseDown: false, mouseX: 0 };
 let modelsLoaded = { building: false, tiles: false, lights: false, doors: false, windows: false, columns: false, dispensers: false };
 let buildingReference = null;
 
-// Camera constants
 const CAM_POS_X = 10.19;
 const CAM_POS_Y = 6.79;
 const CAM_Z_MIN = -7.40;
@@ -129,19 +135,9 @@ const LOOK_OFFSET_X = -10;
 const OUTLINE_COLOR = 0x353ba7;
 const COMPLAINT_OUTLINE_COLOR = 0xdc3545;
 
-const statusColors = {
-    0: 0x808080, 1: 0xff4444, 2: 0xCC0000, 3: 0xffeb3b, 4: 0x4CAF50
-};
-
-const statusNames = {
-    0: 'Offline', 1: 'Empty', 2: 'Critical', 3: 'Mid', 4: 'Full'
-};
-
-const statusClasses = {
-    0: 'status-offline', 1: 'status-empty', 2: 'status-critical',
-    3: 'status-mid', 4: 'status-full'
-};
-
+const statusColors = { 0: 0x808080, 1: 0xff4444, 2: 0xCC0000, 3: 0xffeb3b, 4: 0x4CAF50 };
+const statusNames  = { 0: 'Offline', 1: 'Empty', 2: 'Critical', 3: 'Mid', 4: 'Full' };
+const statusClasses = { 0: 'status-offline', 1: 'status-empty', 2: 'status-critical', 3: 'status-mid', 4: 'status-full' };
 const statusSortOrder = { 1: 0, 2: 1, 3: 2, 4: 3, 0: 4 };
 
 const firebaseStatusToLocal = {
@@ -151,15 +147,15 @@ const firebaseStatusToLocal = {
 };
 
 const dispenserInfo = {
-    'DSP_1': { location: 'Floor 1 - Entrance', floor: 1 },
-    'DSP_2': { location: 'Floor 1 - Computer Lab 1', floor: 1 },
-    'DSP_3': { location: 'Floor 1 - Computer Lab 2', floor: 1 },
-    'DSP_4': { location: 'Floor 2 - Computer Lab 4', floor: 2 },
-    'DSP_5': { location: 'Floor 2 - Computer Lab 5', floor: 2 },
-    'DSP_6': { location: 'Floor 2 - Front Left', floor: 2 },
-    'DSP_7': { location: 'Floor 2 - COE Office', floor: 2 },
-    'DSP_8': { location: 'Floor 3 - Front Right', floor: 3 },
-    'DSP_9': { location: 'Floor 3 - Back Right', floor: 3 },
+    'DSP_1':  { location: 'Floor 1 - Entrance', floor: 1 },
+    'DSP_2':  { location: 'Floor 1 - Computer Lab 1', floor: 1 },
+    'DSP_3':  { location: 'Floor 1 - Computer Lab 2', floor: 1 },
+    'DSP_4':  { location: 'Floor 2 - Computer Lab 4', floor: 2 },
+    'DSP_5':  { location: 'Floor 2 - Computer Lab 5', floor: 2 },
+    'DSP_6':  { location: 'Floor 2 - Front Left', floor: 2 },
+    'DSP_7':  { location: 'Floor 2 - COE Office', floor: 2 },
+    'DSP_8':  { location: 'Floor 3 - Front Right', floor: 3 },
+    'DSP_9':  { location: 'Floor 3 - Back Right', floor: 3 },
     'DSP_10': { location: 'Floor 3 - Front Left', floor: 3 },
     'DSP_11': { location: 'Floor 3 - Back Left', floor: 3 },
     'DSP_12': { location: 'Floor 4 - Event Hall Right', floor: 4 },
@@ -167,33 +163,90 @@ const dispenserInfo = {
 };
 
 const dispenserPositions = [
-    { id: 1, x: -1.5, y: 2.0, z: 4, rotation: 0, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Entrance" },
-    { id: 2, x: -4.8, y: 2.0, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Front Right" },
-    { id: 3, x: -4.8, y: 2.0, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Back Right" },
-    { id: 4, x: -4.8, y: 3.80, z: 14, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Left" },
-    { id: 5, x: -4.8, y: 3.80, z: 21.5, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Left" },
-    { id: 6, x: -4.8, y: 3.80, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Right" },
-    { id: 7, x: -4.8, y: 3.80, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Right" },
-    { id: 8, x: -4.8, y: 5.50, z: -8, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Front Right" },
-    { id: 9, x: -4.8, y: 5.50, z: -16, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Back Right" },
-    { id: 10, x: -4.8, y: 5.50, z: 14, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Front Left" },
-    { id: 11, x: -4.8, y: 5.50, z: 21.5, rotation: 90, scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Back Left" },
-    { id: 12, x: -4.8, y: 7.30, z: 17.5, rotation: 90, scale: 0.25, status: 0, floor: 4, name: "Floor 4 - Event Hall Right" },
-    { id: 13, x: -10, y: 7.30, z: 17.5, rotation: 270, scale: 0.25, status: 0, floor: 4, name: "Floor 4 - Event Hall Left" },
+    { id: 1,  x: -1.5,  y: 2.0,  z: 4,    rotation: 0,   scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Entrance" },
+    { id: 2,  x: -4.8,  y: 2.0,  z: -8,   rotation: 90,  scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Front Right" },
+    { id: 3,  x: -4.8,  y: 2.0,  z: -16,  rotation: 90,  scale: 0.25, status: 0, floor: 1, name: "Floor 1 - Back Right" },
+    { id: 4,  x: -4.8,  y: 3.80, z: 14,   rotation: 90,  scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Left" },
+    { id: 5,  x: -4.8,  y: 3.80, z: 21.5, rotation: 90,  scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Left" },
+    { id: 6,  x: -4.8,  y: 3.80, z: -8,   rotation: 90,  scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Front Right" },
+    { id: 7,  x: -4.8,  y: 3.80, z: -16,  rotation: 90,  scale: 0.25, status: 0, floor: 2, name: "Floor 2 - Back Right" },
+    { id: 8,  x: -4.8,  y: 5.50, z: -8,   rotation: 90,  scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Front Right" },
+    { id: 9,  x: -4.8,  y: 5.50, z: -16,  rotation: 90,  scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Back Right" },
+    { id: 10, x: -4.8,  y: 5.50, z: 14,   rotation: 90,  scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Front Left" },
+    { id: 11, x: -4.8,  y: 5.50, z: 21.5, rotation: 90,  scale: 0.25, status: 0, floor: 3, name: "Floor 3 - Back Left" },
+    { id: 12, x: -4.8,  y: 7.30, z: 17.5, rotation: 90,  scale: 0.25, status: 0, floor: 4, name: "Floor 4 - Event Hall Right" },
+    { id: 13, x: -10,   y: 7.30, z: 17.5, rotation: 270, scale: 0.25, status: 0, floor: 4, name: "Floor 4 - Event Hall Left" },
 ];
 
-// ================= UTILITY FUNCTIONS =================
+// ================= UTILITY =================
 function escapeHtml(s) {
     return String(s || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function nowTimestamp() {
+    return new Date().toLocaleString('en-US', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+    });
+}
+
+// ================= COMPLAINT BELL (active complaints) =================
+window.toggleComplaintBell = function() {
+    if (complaintBellOpen) { closeComplaintBell(); } else { openComplaintBell(); }
+};
+
+window.openComplaintBell = function() {
+    complaintBellOpen = true;
+    document.getElementById('complaintBellPanel').style.display = 'block';
+    document.getElementById('complaintBellBackdrop').classList.add('open');
+    renderComplaintBell();
+};
+
+window.closeComplaintBell = function() {
+    complaintBellOpen = false;
+    document.getElementById('complaintBellPanel').style.display = 'none';
+    document.getElementById('complaintBellBackdrop').classList.remove('open');
+};
+
+function updateComplaintBadge() {
+    const badge = document.getElementById('complaintBadge');
+    if (!badge) return;
+    const count = complaints.length;
+    if (count > 0) {
+        badge.style.display = 'flex';
+        badge.textContent = count > 9 ? '9+' : count;
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function renderComplaintBell() {
+    const list = document.getElementById('complaintBellList');
+    const sub  = document.getElementById('complaintBellSub');
+    if (!list) return;
+
+    if (sub) sub.textContent = `${complaints.length} unresolved complaint${complaints.length !== 1 ? 's' : ''}`;
+
+    if (!complaints.length) {
+        list.innerHTML = `<div class="notif-empty-state"><div style="font-weight:600;margin-bottom:4px;">All clear!</div><div>No active complaints right now.</div></div>`;
+        return;
+    }
+
+    list.innerHTML = complaints.map(c => {
+        const info = dispenserInfo[c.dispenser_id] || { location: c.dispenser_id };
+        return `
+            <div class="complaint-bell-item">
+                <div class="complaint-bell-loc">${escapeHtml(info.location)} — <span style="font-size:11px;opacity:0.7;">${escapeHtml(c.dispenser_id)}</span></div>
+                <div class="complaint-bell-issue">${escapeHtml(c.issue)}</div>
+                ${c.details ? `<div class="complaint-bell-time" style="margin-bottom:2px;">${escapeHtml(c.details)}</div>` : ''}
+                <div class="complaint-bell-time">Reported: ${escapeHtml(c.timestamp)}</div>
+            </div>`;
+    }).join('');
 }
 
 // ================= NOTIFICATION FUNCTIONS =================
-
 window.toggleNotifPanel = function() {
     if (notifPanelOpen) { closeNotifPanel(); } else { openNotifPanel(); }
 };
@@ -202,9 +255,7 @@ window.openNotifPanel = function() {
     notifPanelOpen = true;
     document.getElementById('notifPanel').style.display = 'block';
     document.getElementById('notifBackdrop').classList.add('open');
-    if (logsLoaded && Object.keys(allDispenserStatuses).length > 0) {
-        runConsumptionAnalysis();
-    }
+    if (logsLoaded && Object.keys(allDispenserStatuses).length > 0) runConsumptionAnalysis();
 };
 
 window.closeNotifPanel = function() {
@@ -247,49 +298,36 @@ function loadLogsForNotifications() {
                 const parsedDate = parseTimestamp(logEntry.time);
                 if (!parsedDate) return;
                 const statusStr = logEntry.status || '';
-                const localStatus = firebaseStatusToLocal[statusStr] !== undefined
-                    ? firebaseStatusToLocal[statusStr] : -1;
+                const localStatus = firebaseStatusToLocal[statusStr] !== undefined ? firebaseStatusToLocal[statusStr] : -1;
                 if (localStatus === -1) return;
                 allLogs.push({
                     dispenserId: logEntry.id || dispenserId,
                     status: localStatus,
-                    statusStr: statusStr,
-                    parsedDate: parsedDate,
+                    statusStr,
+                    parsedDate,
                     timestamp: parsedDate.getTime()
                 });
             });
         });
         logsLoaded = true;
-        if (notifPanelOpen || notifAnalyzed) {
-            runConsumptionAnalysis();
-        } else if (Object.keys(allDispenserStatuses).length > 0) {
-            runConsumptionAnalysis();
-        }
+        if (notifPanelOpen || notifAnalyzed) runConsumptionAnalysis();
+        else if (Object.keys(allDispenserStatuses).length > 0) runConsumptionAnalysis();
     });
 }
 
-// Returns the most recent past date (not today) that has logs for the given dispenser
 function getLatestLogDate(dispenserId) {
     const today = new Date();
     const todayDateStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-
     const pastLogs = allLogs.filter(l => {
         if (l.dispenserId !== dispenserId) return false;
         const d = l.parsedDate;
-        const dStr = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-        return dStr !== todayDateStr;
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` !== todayDateStr;
     });
-
     if (pastLogs.length === 0) return null;
-
-    // Sort descending to get the most recent past date
     pastLogs.sort((a, b) => b.timestamp - a.timestamp);
     const latest = pastLogs[0].parsedDate;
-
     return {
-        year: latest.getFullYear(),
-        month: latest.getMonth(),
-        day: latest.getDate(),
+        year: latest.getFullYear(), month: latest.getMonth(), day: latest.getDate(),
         dateLabel: latest.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     };
 }
@@ -298,17 +336,14 @@ function runConsumptionAnalysis() {
     notifAnalyzed = true;
     const now = new Date();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
     const alerts = [];
 
     MONITORED_DISPENSERS.forEach(dispenserId => {
         const currentStatus = allDispenserStatuses[dispenserId];
         if (currentStatus === undefined || currentStatus === 0) return;
 
-        // Use the most recent past date with logs instead of hardcoded yesterday
         const latestDate = getLatestLogDate(dispenserId);
         if (!latestDate) return;
-
         const { year: refYear, month: refMonth, day: refDay, dateLabel } = latestDate;
 
         const refLogs = allLogs.filter(l => {
@@ -316,68 +351,45 @@ function runConsumptionAnalysis() {
             const d = l.parsedDate;
             return d.getFullYear() === refYear && d.getMonth() === refMonth && d.getDate() === refDay;
         });
-
         if (refLogs.length === 0) return;
 
-        // Find the log from the reference date closest to the current time of day
-        let closestLog = null;
-        let minTimeDiff = Infinity;
+        let closestLog = null, minTimeDiff = Infinity;
         refLogs.forEach(l => {
             const logMinutes = l.parsedDate.getHours() * 60 + l.parsedDate.getMinutes();
             const diff = Math.abs(logMinutes - nowMinutes);
             if (diff < minTimeDiff) { minTimeDiff = diff; closestLog = l; }
         });
-
         if (!closestLog) return;
 
         const refStatus = closestLog.status;
         const todayStatus = currentStatus;
         const diff = refStatus - todayStatus;
-
         if (diff === 0) return;
 
         let severity, severityClass, message, direction;
-
         if (diff > 0) {
             direction = 'faster';
-            if (diff >= 3) {
-                severity = 'high'; severityClass = 'severity-high';
-                message = `Drastically more water used compared to ${dateLabel}.`;
-            } else if (diff === 2) {
-                severity = 'medium'; severityClass = 'severity-medium';
-                message = `Noticeably more water used compared to ${dateLabel}.`;
-            } else {
-                severity = 'low'; severityClass = 'severity-low';
-                message = `Slightly more water used compared to ${dateLabel}.`;
-            }
+            if      (diff >= 3) { severity = 'high';   severityClass = 'severity-high';   message = `Drastically more water used compared to ${dateLabel}.`; }
+            else if (diff === 2) { severity = 'medium'; severityClass = 'severity-medium'; message = `Noticeably more water used compared to ${dateLabel}.`; }
+            else                 { severity = 'low';    severityClass = 'severity-low';    message = `Slightly more water used compared to ${dateLabel}.`; }
         } else {
             direction = 'slower';
             const absDiff = Math.abs(diff);
-            if (absDiff >= 3) {
-                severity = 'great'; severityClass = 'severity-great';
-                message = `Much less water used compared to ${dateLabel}.`;
-            } else if (absDiff === 2) {
-                severity = 'good'; severityClass = 'severity-good';
-                message = `Noticeably less water used compared to ${dateLabel}.`;
-            } else {
-                severity = 'ok'; severityClass = 'severity-ok';
-                message = `Slightly less water used compared to ${dateLabel}.`;
-            }
+            if      (absDiff >= 3) { severity = 'great'; severityClass = 'severity-great'; message = `Much less water used compared to ${dateLabel}.`; }
+            else if (absDiff === 2) { severity = 'good';  severityClass = 'severity-good';  message = `Noticeably less water used compared to ${dateLabel}.`; }
+            else                    { severity = 'ok';    severityClass = 'severity-ok';    message = `Slightly less water used compared to ${dateLabel}.`; }
         }
 
         const closestTime = closestLog.parsedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
         alerts.push({
-            dispenserId, todayStatus, refStatus,
-            severity, severityClass, message, direction,
-            closestTime, dateLabel,
+            dispenserId, todayStatus, refStatus, severity, severityClass,
+            message, direction, closestTime, dateLabel,
             timeDiffMinutes: Math.round(minTimeDiff), diff
         });
     });
 
     const severityOrder = { high: 0, medium: 1, low: 2, ok: 3, good: 4, great: 5 };
     alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
-
     notifAlerts = alerts;
     updateNotifBadge();
     if (notifPanelOpen) renderNotifPanel();
@@ -401,34 +413,25 @@ function getStatusChipClass(statusVal) {
 
 function renderNotifPanel() {
     const list = document.getElementById('notifList');
-    const sub = document.getElementById('notifPanelSub');
+    const sub  = document.getElementById('notifPanelSub');
     if (!list) return;
-
     const now = new Date();
     if (sub) sub.textContent = `Checked at ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} - Today vs Latest Log Date`;
-
     if (!logsLoaded) {
         list.innerHTML = `<div class="notif-loading"><div class="notif-spinner"></div><div>Loading logs...</div></div>`;
         return;
     }
-
     if (notifAlerts.length === 0) {
-        list.innerHTML = `
-            <div class="notif-empty-state">
-                <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">All good!</div>
-                <div>No unusual consumption compared to the latest log date.</div>
-            </div>`;
+        list.innerHTML = `<div class="notif-empty-state"><div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">All good!</div><div>No unusual consumption compared to the latest log date.</div></div>`;
         return;
     }
-
     list.innerHTML = notifAlerts.map(alert => {
         const info = dispenserInfo[alert.dispenserId] || { location: alert.dispenserId };
         const todayChip = getStatusChipClass(alert.todayStatus);
-        const refChip = getStatusChipClass(alert.refStatus);
-        const isFaster = alert.direction === 'faster';
+        const refChip   = getStatusChipClass(alert.refStatus);
+        const isFaster  = alert.direction === 'faster';
         const trendClass = isFaster ? 'notif-trend-faster' : 'notif-trend-slower';
-        const trendText = isFaster ? 'Consuming faster than usual' : 'Consuming slower than usual';
-
+        const trendText  = isFaster ? 'Consuming faster than usual' : 'Consuming slower than usual';
         return `
             <div class="notif-item ${alert.severityClass}">
                 <div class="notif-dispenser-loc">${escapeHtml(info.location)}</div>
@@ -451,12 +454,218 @@ setInterval(() => {
     }
 }, 5 * 60 * 1000);
 
+// ================= COMPLAINT HISTORY MODAL =================
+window.openHistoryModal = function() {
+    document.getElementById('historyModal').classList.add('active');
+    if (!historyLoaded) loadComplaintHistory();
+};
+
+window.closeHistoryModal = function() {
+    document.getElementById('historyModal').classList.remove('active');
+};
+
+// Close history modal when clicking backdrop
+document.getElementById('historyModal').addEventListener('click', function(e) {
+    if (e.target === this) closeHistoryModal();
+});
+
+function loadComplaintHistory() {
+    document.getElementById('historyTableBody').innerHTML =
+        `<tr><td colspan="7" class="history-empty-cell"><div style="display:inline-flex;align-items:center;gap:8px;"><div class="notif-spinner"></div> Loading history…</div></td></tr>`;
+
+    db.ref("logs_history").on("value", snap => {
+        const data = snap.val() || {};
+        allHistoryRecords = [];
+        Object.keys(data).forEach(key => {
+            const r = data[key];
+            if (r) allHistoryRecords.push({ _key: key, ...r });
+        });
+        // Sort newest resolved first
+        allHistoryRecords.sort((a, b) => {
+            const ta = new Date(a.resolved_at || 0).getTime();
+            const tb = new Date(b.resolved_at || 0).getTime();
+            return tb - ta;
+        });
+        historyLoaded = true;
+        populateDispenserFilter();
+        filterHistoryTable();
+        updateHistorySummary();
+    });
+}
+
+function populateDispenserFilter() {
+    const sel = document.getElementById('historyFilterDisp');
+    if (!sel) return;
+    const ids = [...new Set(allHistoryRecords.map(r => r.dispenser_id).filter(Boolean))].sort();
+    // Preserve current selection
+    const current = sel.value;
+    sel.innerHTML = '<option value="">All Dispensers</option>';
+    ids.forEach(id => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = id + (dispenserInfo[id] ? ` — ${dispenserInfo[id].location}` : '');
+        sel.appendChild(opt);
+    });
+    sel.value = current;
+}
+
+window.filterHistoryTable = function() {
+    const search = (document.getElementById('historySearch')?.value || '').toLowerCase();
+    const dispFilter = document.getElementById('historyFilterDisp')?.value || '';
+
+    filteredHistoryRecords = allHistoryRecords.filter(r => {
+        const loc = (dispenserInfo[r.dispenser_id]?.location || '').toLowerCase();
+        const issue = (r.issue || '').toLowerCase();
+        const details = (r.details || '').toLowerCase();
+        const matchSearch = !search || loc.includes(search) || issue.includes(search) || details.includes(search) || (r.dispenser_id || '').toLowerCase().includes(search);
+        const matchDisp = !dispFilter || r.dispenser_id === dispFilter;
+        return matchSearch && matchDisp;
+    });
+
+    renderHistoryTable();
+};
+
+function renderHistoryTable() {
+    const tbody = document.getElementById('historyTableBody');
+    if (!tbody) return;
+
+    if (!historyLoaded) {
+        tbody.innerHTML = `<tr><td colspan="7" class="history-empty-cell">Loading…</td></tr>`;
+        return;
+    }
+
+    if (filteredHistoryRecords.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="history-empty-cell">No records found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = filteredHistoryRecords.map((r, i) => {
+        const info = dispenserInfo[r.dispenser_id] || { location: '—' };
+        return `
+            <tr>
+                <td style="color:var(--text-secondary);font-size:12px;">${i + 1}</td>
+                <td><span class="hist-dispenser-chip">${escapeHtml(r.dispenser_id || '—')}</span></td>
+                <td>${escapeHtml(info.location)}</td>
+                <td><span class="hist-issue-tag">${escapeHtml(r.issue || '—')}</span></td>
+                <td style="max-width:200px;word-break:break-word;">${escapeHtml(r.details || '—')}</td>
+                <td style="white-space:nowrap;font-size:12px;">${escapeHtml(r.timestamp || '—')}</td>
+                <td style="white-space:nowrap;font-size:12px;">${escapeHtml(r.resolved_at || '—')}</td>
+            </tr>`;
+    }).join('');
+}
+
+function updateHistorySummary() {
+    const total = allHistoryRecords.length;
+    const now = new Date();
+    const thisMonth = allHistoryRecords.filter(r => {
+        const d = new Date(r.resolved_at || r.timestamp || 0);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
+
+    // Count by dispenser
+    const counts = {};
+    allHistoryRecords.forEach(r => {
+        if (r.dispenser_id) counts[r.dispenser_id] = (counts[r.dispenser_id] || 0) + 1;
+    });
+    const topId = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+    const topLabel = topId ? `${topId} (${counts[topId]})` : '—';
+
+    const el = id => document.getElementById(id);
+    if (el('histTotalCount')) el('histTotalCount').textContent = total;
+    if (el('histMonthCount')) el('histMonthCount').textContent = thisMonth;
+    if (el('histTopDisp'))    el('histTopDisp').textContent    = topLabel;
+}
+
+// ================= PDF EXPORT =================
+window.exportHistoryPDF = function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    const exportedAt = new Date().toLocaleString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+    });
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(53, 59, 167);
+    doc.text('Complaint History Report', 14, 18);
+
+    // Subtitle
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Exported: ${exportedAt}`, 14, 25);
+    doc.text(`Total Records in Report: ${filteredHistoryRecords.length}  |  Total Resolved: ${allHistoryRecords.length}`, 14, 30);
+
+    // Summary box
+    const now = new Date();
+    const thisMonth = allHistoryRecords.filter(r => {
+        const d = new Date(r.resolved_at || r.timestamp || 0);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
+    const counts = {};
+    allHistoryRecords.forEach(r => { if (r.dispenser_id) counts[r.dispenser_id] = (counts[r.dispenser_id] || 0) + 1; });
+    const topId = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+    const topLabel = topId ? `${topId} (${counts[topId]})` : 'N/A';
+
+    doc.setFontSize(8);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Resolved This Month: ${thisMonth}   |   Most Reported: ${topLabel}`, 14, 35);
+
+    // Table
+    const rows = filteredHistoryRecords.map((r, i) => {
+        const info = dispenserInfo[r.dispenser_id] || { location: '—' };
+        return [
+            i + 1,
+            r.dispenser_id || '—',
+            info.location,
+            r.issue || '—',
+            r.details || '—',
+            r.timestamp || '—',
+            r.resolved_at || '—'
+        ];
+    });
+
+    doc.autoTable({
+        startY: 40,
+        head: [['#', 'Dispenser', 'Location', 'Issue', 'Details', 'Reported At', 'Resolved At']],
+        body: rows,
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [53, 59, 167], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [240, 242, 255] },
+        columnStyles: {
+            0: { cellWidth: 8 },
+            1: { cellWidth: 22 },
+            2: { cellWidth: 45 },
+            3: { cellWidth: 30 },
+            4: { cellWidth: 50 },
+            5: { cellWidth: 42 },
+            6: { cellWidth: 42 }
+        },
+        margin: { left: 14, right: 14 },
+        didDrawPage: function(data) {
+            // Footer on each page
+            const pageCount = doc.internal.getNumberOfPages();
+            doc.setFontSize(7);
+            doc.setTextColor(160, 160, 160);
+            doc.text(
+                `Page ${data.pageNumber} of ${pageCount}  —  Dispenser Admin Dashboard  —  Exported: ${exportedAt}`,
+                14, doc.internal.pageSize.getHeight() - 8
+            );
+        }
+    });
+
+    const safeDate = exportedAt.replace(/[/:,\s]+/g, '-').replace(/-+/g, '-');
+    doc.save(`complaint-history-${safeDate}.pdf`);
+};
+
 // ================= FIREBASE INITIALIZATION =================
 async function initializeFirebase() {
     try {
         const response = await fetch('/api/config');
         const firebaseConfig = await response.json();
-
         firebase.initializeApp(firebaseConfig);
         db = firebase.database();
         auth = firebase.auth();
@@ -509,12 +718,10 @@ function loadDashboardData() {
 
     db.ref("heartbeat").on("value", snap => {
         const data = snap.val() || {};
-
         Object.keys(data).forEach(id => {
             const d = data[id];
             if (d && d.epoch !== undefined) lastHeartbeat[id] = d.epoch;
         });
-
         let changed = false;
         Object.keys(trueFirebaseStatus).forEach(id => {
             const before = allDispenserStatuses[id] ?? -1;
@@ -523,7 +730,6 @@ function loadDashboardData() {
             const m = id.match(/DSP_(\d+)/i);
             if (m) updateDispenser3DStatus(parseInt(m[1]), allDispenserStatuses[id]);
         });
-
         if (changed) renderStatusCards();
     });
 
@@ -537,6 +743,8 @@ function loadDashboardData() {
         });
         renderComplaints();
         renderStatusCards();
+        updateComplaintBadge();
+        if (complaintBellOpen) renderComplaintBell();
         if (selectedDispenserId && selectedFromComplaint) {
             const match = selectedDispenserId.match(/DSP_(\d+)/i);
             if (match) highlightDispenser(parseInt(match[1]), true);
@@ -556,6 +764,7 @@ function loadDashboardData() {
     }, 1000);
 }
 
+// ================= STATUS CARDS =================
 function renderStatusCards() {
     const container = document.getElementById('statusCards');
     if (!container) return;
@@ -571,7 +780,7 @@ function renderStatusCards() {
     keys.forEach(id => {
         const s = allDispenserStatuses[id];
         const info = dispenserInfo[id] || { location: id };
-        const cls = statusClasses[s] || 'status-offline';
+        const cls  = statusClasses[s] || 'status-offline';
         const name = statusNames[s] || 'Unknown';
         const isEmpty = s === 1;
         const hasComplaint = complaintsMap[id] && complaintsMap[id].length > 0;
@@ -598,6 +807,7 @@ function renderStatusCards() {
     });
 }
 
+// ================= COMPLAINTS =================
 function renderComplaints() {
     const container = document.getElementById('complaintsCards');
     if (!container) return;
@@ -623,7 +833,7 @@ function renderComplaints() {
                     <span class="card-value">${escapeHtml(c.timestamp)}</span>
                 </div>
                 ${c.details ? `<div class="card-row"><span class="card-label">Details:</span><span class="card-value">${escapeHtml(c.details)}</span></div>` : ''}
-                <button class="resolve-btn" onclick="event.stopPropagation(); deleteComplaint('${c.id}')">Mark Resolved</button>
+                <button class="resolve-btn" onclick="event.stopPropagation(); resolveComplaint('${c.id}')">Mark Resolved</button>
                 <div class="click-hint">${isSelected ? 'Click to deselect' : 'Click to highlight complained dispenser'}</div>
             </div>`;
     });
@@ -644,9 +854,43 @@ window.selectDispenser = function(dispenserId, isFromComplaint = false) {
     renderComplaints();
 };
 
-window.deleteComplaint = function(id) {
-    if (!confirm('Mark this complaint as resolved?')) return;
-    db.ref('complaints/' + id).remove();
+// ── RESOLVE: archive to logs_history, then delete from complaints ──
+window.resolveComplaint = function(id) {
+    if (!confirm('Mark this complaint as resolved? It will be archived to history.')) return;
+
+    // Find the complaint data
+    const complaint = complaints.find(c => c.id === id);
+    if (!complaint) {
+        db.ref('complaints/' + id).remove();
+        return;
+    }
+
+    const resolved_at = nowTimestamp();
+
+    // Build archive record (exclude the local 'id' field)
+    const archiveRecord = {
+        dispenser_id: complaint.dispenser_id || null,
+        issue:        complaint.issue || null,
+        details:      complaint.details || null,
+        timestamp:    complaint.timestamp || null,
+        resolved_at:  resolved_at
+    };
+
+    // Push to logs_history, then remove from complaints
+    db.ref('logs_history').push(archiveRecord)
+        .then(() => db.ref('complaints/' + id).remove())
+        .then(() => {
+            // Refresh history table if it's open and loaded
+            if (historyLoaded) {
+                filterHistoryTable();
+                updateHistorySummary();
+            }
+        })
+        .catch(err => {
+            console.error('Error archiving complaint:', err);
+            // Still remove even if archive fails to avoid blocking admin
+            db.ref('complaints/' + id).remove();
+        });
 };
 
 // ================= THREE.JS 3D SCENE =================
@@ -687,13 +931,8 @@ function loadBuildingModel() {
         model.traverse(function(node) {
             if (node.isMesh && node.visible) {
                 const nodeName = node.name.toLowerCase();
-                let color;
-                if (nodeName.includes('wall') || nodeName.includes('floor') || nodeName.includes('ceiling') || nodeName.includes('stair')) {
-                    color = 0x0B3D2E;
-                } else {
-                    color = 0xDED7CC;
-                }
-                node.material = new THREE.MeshStandardMaterial({ color: color, side: THREE.DoubleSide, roughness: 0.6 });
+                const color = (nodeName.includes('wall') || nodeName.includes('floor') || nodeName.includes('ceiling') || nodeName.includes('stair')) ? 0x0B3D2E : 0xDED7CC;
+                node.material = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide, roughness: 0.6 });
             }
         });
         const box = new THREE.Box3().setFromObject(model);
@@ -717,42 +956,25 @@ function loadTilesModel() {
     loader.load('Tiles.glb', function(gltf) {
         const model = gltf.scene;
         model.traverse(function(node) {
-            if (node.isMesh && node.visible) {
+            if (node.isMesh && node.visible)
                 node.material = new THREE.MeshStandardMaterial({ color: 0xD3D3D3, roughness: 0.25, metalness: 0.15, side: THREE.DoubleSide });
-            }
         });
-        if (buildingReference) {
-            model.position.copy(buildingReference.position);
-            model.scale.copy(buildingReference.scale);
-            model.rotation.copy(buildingReference.rotation);
-        }
+        if (buildingReference) { model.position.copy(buildingReference.position); model.scale.copy(buildingReference.scale); model.rotation.copy(buildingReference.rotation); }
         scene.add(model);
         modelsLoaded.tiles = true;
         checkLoadingComplete();
-    }, undefined, function(error) {
-        console.error('Error loading tiles model:', error);
-        modelsLoaded.tiles = true;
-        checkLoadingComplete();
-    });
+    }, undefined, function(error) { console.error('Error loading tiles model:', error); modelsLoaded.tiles = true; checkLoadingComplete(); });
 }
 
 function loadLightModel() {
     const loader = new THREE.GLTFLoader();
     loader.load('LIGHT.glb', function(gltf) {
         const model = gltf.scene;
-        if (buildingReference) {
-            model.position.copy(buildingReference.position);
-            model.scale.copy(buildingReference.scale);
-            model.rotation.copy(buildingReference.rotation);
-        }
+        if (buildingReference) { model.position.copy(buildingReference.position); model.scale.copy(buildingReference.scale); model.rotation.copy(buildingReference.rotation); }
         scene.add(model);
         modelsLoaded.lights = true;
         checkLoadingComplete();
-    }, undefined, function(error) {
-        console.error('Error loading light model:', error);
-        modelsLoaded.lights = true;
-        checkLoadingComplete();
-    });
+    }, undefined, function(error) { console.error('Error loading light model:', error); modelsLoaded.lights = true; checkLoadingComplete(); });
 }
 
 function loadDoorModel() {
@@ -760,23 +982,14 @@ function loadDoorModel() {
     loader.load('door.glb', function(gltf) {
         const model = gltf.scene;
         model.traverse(function(node) {
-            if (node.isMesh && node.visible) {
+            if (node.isMesh && node.visible)
                 node.material = new THREE.MeshStandardMaterial({ color: 0xD3D3D3, roughness: 0.6, metalness: 0.2, side: THREE.DoubleSide });
-            }
         });
-        if (buildingReference) {
-            model.position.copy(buildingReference.position);
-            model.scale.copy(buildingReference.scale);
-            model.rotation.copy(buildingReference.rotation);
-        }
+        if (buildingReference) { model.position.copy(buildingReference.position); model.scale.copy(buildingReference.scale); model.rotation.copy(buildingReference.rotation); }
         scene.add(model);
         modelsLoaded.doors = true;
         checkLoadingComplete();
-    }, undefined, function(error) {
-        console.error('Error loading door model:', error);
-        modelsLoaded.doors = true;
-        checkLoadingComplete();
-    });
+    }, undefined, function(error) { console.error('Error loading door model:', error); modelsLoaded.doors = true; checkLoadingComplete(); });
 }
 
 function loadWindowModel() {
@@ -784,42 +997,25 @@ function loadWindowModel() {
     loader.load('window.glb', function(gltf) {
         const model = gltf.scene;
         model.traverse(function(node) {
-            if (node.isMesh && node.visible) {
+            if (node.isMesh && node.visible)
                 node.material = new THREE.MeshStandardMaterial({ color: 0x87CEEB, roughness: 0.1, metalness: 0.5, transparent: true, opacity: 0.3 });
-            }
         });
-        if (buildingReference) {
-            model.position.copy(buildingReference.position);
-            model.scale.copy(buildingReference.scale);
-            model.rotation.copy(buildingReference.rotation);
-        }
+        if (buildingReference) { model.position.copy(buildingReference.position); model.scale.copy(buildingReference.scale); model.rotation.copy(buildingReference.rotation); }
         scene.add(model);
         modelsLoaded.windows = true;
         checkLoadingComplete();
-    }, undefined, function(error) {
-        console.error('Error loading window model:', error);
-        modelsLoaded.windows = true;
-        checkLoadingComplete();
-    });
+    }, undefined, function(error) { console.error('Error loading window model:', error); modelsLoaded.windows = true; checkLoadingComplete(); });
 }
 
 function loadColumnModel() {
     const loader = new THREE.GLTFLoader();
     loader.load('column.glb', function(gltf) {
         const model = gltf.scene;
-        if (buildingReference) {
-            model.position.copy(buildingReference.position);
-            model.scale.copy(buildingReference.scale);
-            model.rotation.copy(buildingReference.rotation);
-        }
+        if (buildingReference) { model.position.copy(buildingReference.position); model.scale.copy(buildingReference.scale); model.rotation.copy(buildingReference.rotation); }
         scene.add(model);
         modelsLoaded.columns = true;
         checkLoadingComplete();
-    }, undefined, function(error) {
-        console.error('Error loading column model:', error);
-        modelsLoaded.columns = true;
-        checkLoadingComplete();
-    });
+    }, undefined, function(error) { console.error('Error loading column model:', error); modelsLoaded.columns = true; checkLoadingComplete(); });
 }
 
 function loadDispenserModel() {
@@ -848,43 +1044,29 @@ function loadDispenserModel() {
         });
         modelsLoaded.dispensers = true;
         checkLoadingComplete();
-    }, undefined, function(error) {
-        console.error('Error loading dispenser model:', error);
-        modelsLoaded.dispensers = true;
-        checkLoadingComplete();
-    });
+    }, undefined, function(error) { console.error('Error loading dispenser model:', error); modelsLoaded.dispensers = true; checkLoadingComplete(); });
 }
 
 function checkLoadingComplete() {
     if (modelsLoaded.building && modelsLoaded.tiles && modelsLoaded.lights &&
-        modelsLoaded.doors && modelsLoaded.windows && modelsLoaded.columns &&
-        modelsLoaded.dispensers) {
+        modelsLoaded.doors && modelsLoaded.windows && modelsLoaded.columns && modelsLoaded.dispensers) {
         document.getElementById('loading-3d').style.display = 'none';
         sceneReady = true;
-
-        Object.entries(pendingStatusUpdates).forEach(([localId, statusValue]) => {
-            updateDispenser3DStatus(Number(localId), statusValue);
-        });
+        Object.entries(pendingStatusUpdates).forEach(([localId, statusValue]) => updateDispenser3DStatus(Number(localId), statusValue));
         pendingStatusUpdates = {};
-
         const now = Date.now();
         Object.keys(trueFirebaseStatus).forEach(dispenserId => {
             const match = dispenserId.match(/DSP_(\d+)/i);
             if (!match) return;
-            const localId = parseInt(match[1]);
             const hb = lastHeartbeat[dispenserId];
             const isOnline = hb && (now - hb <= 70000);
-            const effective = isOnline ? trueFirebaseStatus[dispenserId] : 0;
-            updateDispenser3DStatus(localId, effective);
+            updateDispenser3DStatus(parseInt(match[1]), isOnline ? trueFirebaseStatus[dispenserId] : 0);
         });
     }
 }
 
 function updateDispenser3DStatus(dispenserId, statusValue) {
-    if (!sceneReady) {
-        pendingStatusUpdates[dispenserId] = statusValue;
-        return;
-    }
+    if (!sceneReady) { pendingStatusUpdates[dispenserId] = statusValue; return; }
     const dispenser = dispensers3D.find(d => d.userData.id === dispenserId);
     if (!dispenser) return;
     dispenser.userData.status = statusValue;
@@ -901,59 +1083,45 @@ function updateDispenser3DStatus(dispenserId, statusValue) {
 }
 
 function highlightDispenser(localId, isFromComplaint = false) {
-    if (selectedDispenserOutline) {
-        scene.remove(selectedDispenserOutline);
-        selectedDispenserOutline = null;
-    }
-
+    if (selectedDispenserOutline) { scene.remove(selectedDispenserOutline); selectedDispenserOutline = null; }
     if (!localId) {
         document.getElementById('selectedDispenserInfo').style.display = 'none';
         document.getElementById('targetDispenserLabel').style.display = 'none';
         return;
     }
-
     const dispenser = dispensers3D.find(d => d.userData.id === localId);
     if (!dispenser) return;
-
     const outlineColor = isFromComplaint ? COMPLAINT_OUTLINE_COLOR : OUTLINE_COLOR;
-
     const box = new THREE.Box3().setFromObject(dispenser);
     const size = new THREE.Vector3();
     const center = new THREE.Vector3();
-    box.getSize(size);
-    box.getCenter(center);
-
+    box.getSize(size); box.getCenter(center);
     const padding = 0.05;
-    size.x += padding;
-    size.z += padding;
+    size.x += padding; size.z += padding;
     size.y = Math.min(size.y, 1.5) + padding;
     center.y = box.min.y + size.y / 1.3;
-
     const boxGeo = new THREE.BoxGeometry(size.x, size.y, size.z);
     const fillMat = new THREE.MeshBasicMaterial({ color: outlineColor, transparent: true, opacity: 0.05, depthWrite: false, side: THREE.FrontSide });
     const fillMesh = new THREE.Mesh(boxGeo, fillMat);
     fillMesh.position.copy(center);
-
     const edgeThickness = 0.031;
     const edgesGeo = new THREE.EdgesGeometry(boxGeo);
     const positions = edgesGeo.attributes.position;
     const edgeMat = new THREE.MeshBasicMaterial({ color: outlineColor });
     const edgesGroup = new THREE.Group();
     edgesGroup.position.copy(center);
-
     for (let i = 0; i < positions.count; i += 2) {
         const start = new THREE.Vector3().fromBufferAttribute(positions, i);
-        const end = new THREE.Vector3().fromBufferAttribute(positions, i + 1);
-        const dir = new THREE.Vector3().subVectors(end, start);
+        const end   = new THREE.Vector3().fromBufferAttribute(positions, i + 1);
+        const dir   = new THREE.Vector3().subVectors(end, start);
         const length = dir.length();
-        const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+        const mid    = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
         const tubeGeo = new THREE.CylinderGeometry(edgeThickness, edgeThickness, length, 6, 1);
         const tube = new THREE.Mesh(tubeGeo, edgeMat);
         tube.position.copy(mid);
         tube.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
         edgesGroup.add(tube);
     }
-
     const group = new THREE.Group();
     group.userData.isOutline = true;
     group.add(fillMesh);
@@ -964,24 +1132,13 @@ function highlightDispenser(localId, isFromComplaint = false) {
     const dispId = `DSP_${localId}`;
     const info = dispenserInfo[dispId] || { location: 'Unknown' };
     const hasComplaint = complaintsMap[dispId] && complaintsMap[dispId].length > 0;
-
     document.getElementById('selectedDispenserName').textContent = dispId;
     document.getElementById('selectedDispenserLocation').textContent = info.location;
-
-    const badgeEl = document.getElementById('selectedDispenserBadge');
+    const badgeEl   = document.getElementById('selectedDispenserBadge');
     const infoPanel = document.getElementById('selectedDispenserInfo');
-    const labelEl = document.getElementById('targetDispenserLabel');
-
-    if (hasComplaint) {
-        badgeEl.style.display = 'inline';
-        infoPanel.classList.add('complaint-source');
-        labelEl.classList.add('complaint-source');
-    } else {
-        badgeEl.style.display = 'none';
-        infoPanel.classList.remove('complaint-source');
-        labelEl.classList.remove('complaint-source');
-    }
-
+    const labelEl   = document.getElementById('targetDispenserLabel');
+    if (hasComplaint) { badgeEl.style.display = 'inline'; infoPanel.classList.add('complaint-source'); labelEl.classList.add('complaint-source'); }
+    else { badgeEl.style.display = 'none'; infoPanel.classList.remove('complaint-source'); labelEl.classList.remove('complaint-source'); }
     infoPanel.style.display = 'block';
     labelEl.style.display = 'block';
     updateTargetDispenserLabel(localId);
@@ -997,46 +1154,25 @@ function updateTargetDispenserLabel(localId) {
     pos3D.project(camera);
     const x = (pos3D.x * 0.5 + 0.5) * container.clientWidth;
     const y = (-pos3D.y * 0.5 + 0.5) * container.clientHeight;
-    if (pos3D.z > 1 || x < 0 || x > container.clientWidth || y < 0 || y > container.clientHeight) {
-        label.style.display = 'none';
-        return;
-    }
+    if (pos3D.z > 1 || x < 0 || x > container.clientWidth || y < 0 || y > container.clientHeight) { label.style.display = 'none'; return; }
     label.style.display = 'block';
     label.style.left = (x + 20) + 'px';
-    label.style.top = (y - 25) + 'px';
+    label.style.top  = (y - 25) + 'px';
 }
 
 function setup3DControls() {
     const canvas = renderer.domElement;
     canvas.addEventListener('mousedown', (e) => { controls3D.mouseDown = true; controls3D.mouseX = e.clientX; });
-    canvas.addEventListener('mousemove', (e) => {
-        if (!controls3D.mouseDown) return;
-        slideZ((e.clientX - controls3D.mouseX) * 0.05);
-        controls3D.mouseX = e.clientX;
-    });
-    canvas.addEventListener('mouseup', () => { controls3D.mouseDown = false; });
-    canvas.addEventListener('mouseleave', () => { controls3D.mouseDown = false; });
-    canvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        slideZ(-(e.deltaX !== 0 ? e.deltaX : e.deltaY) * 0.02);
-    }, { passive: false });
+    canvas.addEventListener('mousemove', (e) => { if (!controls3D.mouseDown) return; slideZ((e.clientX - controls3D.mouseX) * 0.05); controls3D.mouseX = e.clientX; });
+    canvas.addEventListener('mouseup',   () => { controls3D.mouseDown = false; });
+    canvas.addEventListener('mouseleave',() => { controls3D.mouseDown = false; });
+    canvas.addEventListener('wheel', (e) => { e.preventDefault(); slideZ(-(e.deltaX !== 0 ? e.deltaX : e.deltaY) * 0.02); }, { passive: false });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (e.touches.length >= 1) controls3D.mouseX = e.touches[0].clientX;
-    }, { passive: false });
-    canvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        if (e.touches.length >= 1) {
-            slideZ((e.touches[0].clientX - controls3D.mouseX) * 0.05);
-            controls3D.mouseX = e.touches[0].clientX;
-        }
-    }, { passive: false });
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); if (e.touches.length >= 1) controls3D.mouseX = e.touches[0].clientX; }, { passive: false });
+    canvas.addEventListener('touchmove',  (e) => { e.preventDefault(); if (e.touches.length >= 1) { slideZ((e.touches[0].clientX - controls3D.mouseX) * 0.05); controls3D.mouseX = e.touches[0].clientX; } }, { passive: false });
 }
 
-function slideZ(delta) {
-    cameraZ = Math.max(CAM_Z_MIN, Math.min(CAM_Z_MAX, cameraZ + delta));
-}
+function slideZ(delta) { cameraZ = Math.max(CAM_Z_MIN, Math.min(CAM_Z_MAX, cameraZ + delta)); }
 
 function updateCamera() {
     cameraZ = Math.max(CAM_Z_MIN, Math.min(CAM_Z_MAX, cameraZ));
@@ -1054,7 +1190,6 @@ function onWindowResize() {
 let emptyPulseTime = 0;
 function animate3D() {
     requestAnimationFrame(animate3D);
-
     emptyPulseTime += 0.05;
     dispensers3D.forEach(d => {
         const id = `DSP_${d.userData.id}`;
@@ -1062,14 +1197,12 @@ function animate3D() {
             d.traverse(node => {
                 if (node.isMesh) {
                     const nodeName = node.name.toLowerCase();
-                    if (!nodeName.includes('pump') && !nodeName.includes('cap')) {
+                    if (!nodeName.includes('pump') && !nodeName.includes('cap'))
                         node.material.emissiveIntensity = 0.2 + 0.3 * Math.abs(Math.sin(emptyPulseTime));
-                    }
                 }
             });
         }
     });
-
     updateCamera();
     if (selectedDispenserId) {
         const match = selectedDispenserId.match(/DSP_(\d+)/i);
