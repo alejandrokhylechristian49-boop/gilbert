@@ -13,6 +13,10 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <!-- jsPDF + AutoTable for client-side PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -28,10 +32,21 @@
         <h1>Dispenser Admin</h1>
         
         <div class="header-right">
+            <!-- Complaint Notif Bell (ongoing/active complaints) -->
+            <!-- Replace "notif-bell.png" with your actual .png file path -->
+            <div class="notif-bell-wrap complaint-bell-wrap" id="complaintBell" onclick="toggleComplaintBell()" title="Active complaints">
+                <img src="notif-bell.png" alt="Complaints" class="notif-bell-img"
+                     onerror="this.style.display='none'; document.getElementById('complaintBellFallback').style.display='inline';">
+                <span id="complaintBellFallback" class="notif-bell-icon" style="display:none;">🔔</span>
+                <span class="notif-badge complaint-notif-badge" id="complaintBadge" style="display:none;">0</span>
+            </div>
+
+            <!-- Consumption Alerts Bell -->
             <div class="notif-bell-wrap" id="notifBell" onclick="toggleNotifPanel()" title="Consumption alerts">
                 <span class="notif-bell-icon">ALERTS</span>
                 <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
             </div>
+
             <label class="theme-switch-wrap" title="Toggle dark mode">
                 <span class="theme-icon">&#9728;</span>
                 <input type="checkbox" id="themeCheckbox">
@@ -40,6 +55,21 @@
                 </div>
                 <span class="theme-icon">&#9790;</span>
             </label>
+        </div>
+    </div>
+
+    <!-- Complaint Bell Dropdown Panel -->
+    <div class="complaint-bell-backdrop" id="complaintBellBackdrop" onclick="closeComplaintBell()"></div>
+    <div class="complaint-bell-panel" id="complaintBellPanel" style="display:none;">
+        <div class="notif-panel-header">
+            <div>
+                <div class="notif-panel-title">🔔 Active Complaints</div>
+                <div class="notif-panel-sub" id="complaintBellSub">Currently unresolved complaints</div>
+            </div>
+            <button class="notif-panel-close" onclick="closeComplaintBell()">&#10005;</button>
+        </div>
+        <div class="notif-list" id="complaintBellList">
+            <div class="notif-empty-state"><div>No active complaints</div></div>
         </div>
     </div>
 
@@ -90,6 +120,58 @@
             </div>
         </div>
     </div>
+
+    <!-- ══════════ COMPLAINT HISTORY MODAL ══════════ -->
+    <div class="modal-overlay history-modal-overlay" id="historyModal">
+        <div class="modal-content history-modal-content">
+            <div class="history-modal-header">
+                <div>
+                    <div class="history-modal-title">📋 Complaint History</div>
+                    <div class="history-modal-sub">Resolved complaints archived from <code>logs_history</code></div>
+                </div>
+                <button class="notif-panel-close history-close-btn" onclick="closeHistoryModal()">&#10005;</button>
+            </div>
+
+            <!-- Filters Row -->
+            <div class="history-filters">
+                <input type="text" id="historySearch" placeholder="Search location or issue…" class="history-search-input" oninput="filterHistoryTable()">
+                <select id="historyFilterDisp" class="history-filter-select" onchange="filterHistoryTable()">
+                    <option value="">All Dispensers</option>
+                </select>
+                <button class="history-export-btn" onclick="exportHistoryPDF()">
+                    ⬇&nbsp;Export PDF
+                </button>
+            </div>
+
+            <!-- Summary Row -->
+            <div class="history-summary-row">
+                <div class="history-summary-chip">Total Resolved: <strong id="histTotalCount">—</strong></div>
+                <div class="history-summary-chip">This Month: <strong id="histMonthCount">—</strong></div>
+                <div class="history-summary-chip">Most Reported: <strong id="histTopDisp">—</strong></div>
+            </div>
+
+            <!-- Table -->
+            <div class="history-table-wrap">
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Dispenser</th>
+                            <th>Location</th>
+                            <th>Issue</th>
+                            <th>Details</th>
+                            <th>Reported At</th>
+                            <th>Resolved At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <tr><td colspan="7" class="history-empty-cell">Loading history…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- ══════════════════════════════════════════════ -->
     
     <!-- Main Content -->
     <div class="main-container">
@@ -110,7 +192,15 @@
         <h2>Realtime Status <span style="font-size:12px;">(Click any card to highlight in 3D)</span></h2>
         <div class="status-scroll-wrapper" id="statusCards"></div>
         
-        <h2>Complaints <span style="font-size:12px;">(Click any complaint to highlight dispenser)</span></h2>
+        <!-- Complaints section header with History button -->
+        <div class="section-header-row">
+            <h2 style="margin:0;">Complaints
+                <span style="font-size:12px;font-weight:400;">(Click any complaint to highlight dispenser)</span>
+            </h2>
+            <button class="history-trigger-btn" onclick="openHistoryModal()">
+                🗂&nbsp;Complaint History
+            </button>
+        </div>
         <div class="card-container" id="complaintsCards"></div>
     </div>
     
