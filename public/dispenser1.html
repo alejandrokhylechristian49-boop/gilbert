@@ -98,12 +98,13 @@
             <label>Issue Type</label>
             <!-- ✅ CHANGED: onchange handler added -->
             <select id="issue" onchange="handleIssueChange()">
-                <option>No cooling/heating</option>
-                <option>Leaking</option>
-                <option>Dirty</option>
-                <option>No Power</option>
-                <option>Clogged filter/spout</option>
-                <option>Others</option>
+            <option value="" disabled selected>Please Select a Complaint</option>
+            <option>No cooling/heating</option>
+            <option>Leaking</option>
+            <option>Dirty</option>
+            <option>No Power</option>
+            <option>Clogged filter/spout</option>
+            <option>Others</option>
             </select>
             <label for="details">Additional Details <span id="detailsOptionalLabel">(Optional)</span></label>
             <!-- ✅ CHANGED: starts disabled -->
