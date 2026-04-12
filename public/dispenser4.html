@@ -149,6 +149,40 @@
         }
 
         document.addEventListener('DOMContentLoaded', handleIssueChange);
+
+         function disableCriticalCards() {
+            document.querySelectorAll('#statusCards .status-card').forEach(card => {
+                const badge = card.querySelector('.status-badge');
+                if (!badge) return;
+
+                const isCritical =
+                    badge.classList.contains('status-critical') ||
+                    badge.classList.contains('critical') ||
+                    badge.classList.contains('status-empty') ||
+                    badge.classList.contains('empty') ||
+                    badge.classList.contains('status-offline') ||
+                    badge.classList.contains('offline');
+
+                if (isCritical) {
+                    card.style.pointerEvents = 'none';
+                    card.style.opacity       = '0.6';
+                    card.style.cursor        = 'not-allowed';
+                    // Remove any hover transform
+                    card.classList.add('card-disabled');
+                }
+            });
+        }
+
+        // Observe #statusCards for DOM changes (cards added by Firebase)
+        const observer = new MutationObserver(disableCriticalCards);
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('statusCards');
+            if (container) {
+                observer.observe(container, { childList: true, subtree: true });
+            }
+            // Also run once immediately in case cards already exist
+            disableCriticalCards();
+        });
     </script>
 </body>
 </html>
