@@ -127,27 +127,31 @@
     <script>
         /* ── ISSUE DROPDOWN → TEXTAREA TOGGLE ── */
         function handleIssueChange() {
-        const select   = document.getElementById('issue');
-        const textarea = document.getElementById('details');
-        const label    = document.getElementById('detailsLabel');
+    const select   = document.getElementById('issue');
+    const textarea = document.getElementById('details');
+    const label    = document.getElementById('detailsLabel');
+    const btn      = document.getElementById('submitBtn');
 
-        if (select.value === 'Others') {
-            label.style.display    = 'block';
-            textarea.style.display = 'block';
-            textarea.disabled      = false;
-        } else {
-            label.style.display    = 'none';
-            textarea.style.display = 'none';
-            textarea.disabled      = true;
-            textarea.value         = '';
-        }
+    if (select.value === 'Others') {
+        label.style.display    = 'block';
+        textarea.style.display = 'block';
+        textarea.disabled      = false;
+        btn.disabled           = false;
+    } else if (select.value === '') {
+        label.style.display    = 'none';
+        textarea.style.display = 'none';
+        textarea.disabled      = true;
+        textarea.value         = '';
+        btn.disabled           = true;
+    } else {
+        label.style.display    = 'none';
+        textarea.style.display = 'none';
+        textarea.disabled      = true;
+        textarea.value         = '';
+        btn.disabled           = false;
     }
-
+}
     document.addEventListener('DOMContentLoaded', handleIssueChange);
-
-        // Run on load so the initial state is correct
-        document.addEventListener('DOMContentLoaded', handleIssueChange);
-
 
         /* ── BLOCK CLICKS ON CRITICAL DISPENSER CARDS ──
            Your app-1.js renders cards into #statusCards.
