@@ -13,7 +13,7 @@
         <span class="header-title">Dispenser 3 - Computer Lab 4 Dashboard</span>
         <div class="header-right">
             <div class="notif-bell-wrap" id="notifBell" onclick="toggleNotifPanel()" title="Consumption alerts">
-                <span class="notif-bell-icon">ALERTS</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
             </div>
             <label class="theme-switch-wrap" title="Toggle dark mode">
@@ -65,7 +65,7 @@
                 <div class="you-are-here-label" id="youAreHereLabel">You Are Here</div>
                 <div class="info-3d" id="info3d">
                     <strong>Navigation Info</strong>
-                    <div>Selected: <span id="selected-info">DSP_1</span></div>
+                    <div>Selected: <span id="selected-info">DSP_3</span></div>
                     <div class="camera-pos">Camera: <span id="camera-position">X: 0, Y: 0, Z: 0</span></div>
                     <button onclick="copyCameraPosition()">Copy Camera Position</button>
                 </div>
@@ -94,16 +94,18 @@
         <div class="card danger-card">
             <h2 class="danger-title">Report Problem</h2>
             <label>Issue Type</label>
-            <select id="issue">
+            <select id="issue" onchange="handleIssueChange()">
+                <option value="" disabled selected>Please Select a Complaint</option>
                 <option>No cooling/heating</option>
                 <option>Leaking</option>
                 <option>Dirty</option>
                 <option>No Power</option>
                 <option>Clogged filter/spout</option>
+                <option>Others</option>
             </select>
-            <label>Additional Details (Optional)</label>
-            <textarea id="details" placeholder="Describe the issue in more detail..."></textarea>
-            <button class="submit-btn" id="submitBtn" onclick="submitComplaint()">Submit Complaint</button>
+            <label for="details" id="detailsLabel" style="display:none;">Additional Details (Required)</label>
+            <textarea id="details" placeholder="Describe the issue in more detail..." style="display:none;"></textarea>
+            <button class="submit-btn" id="submitBtn" onclick="submitComplaint()" disabled>Submit Complaint</button>
             <div id="feedback"></div>
         </div>
     </div>
@@ -118,5 +120,35 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="js/app-3.js"></script>
+
+    <script>
+        function handleIssueChange() {
+            const select   = document.getElementById('issue');
+            const textarea = document.getElementById('details');
+            const label    = document.getElementById('detailsLabel');
+            const btn      = document.getElementById('submitBtn');
+
+            if (select.value === 'Others') {
+                label.style.display    = 'block';
+                textarea.style.display = 'block';
+                textarea.disabled      = false;
+                btn.disabled           = false;
+            } else if (select.value === '') {
+                label.style.display    = 'none';
+                textarea.style.display = 'none';
+                textarea.disabled      = true;
+                textarea.value         = '';
+                btn.disabled           = true;
+            } else {
+                label.style.display    = 'none';
+                textarea.style.display = 'none';
+                textarea.disabled      = true;
+                textarea.value         = '';
+                btn.disabled           = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', handleIssueChange);
+    </script>
 </body>
 </html>
