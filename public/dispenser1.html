@@ -12,8 +12,9 @@
         <div style="width:90px;flex-shrink:0;"></div>
         <span class="header-title">Dispenser 1 - Entrance Dashboard</span>
         <div class="header-right">
+            <!-- ✅ CHANGED: SVG bell icon instead of ALERTS text -->
             <div class="notif-bell-wrap" id="notifBell" onclick="toggleNotifPanel()" title="Consumption alerts">
-                <span class="notif-bell-icon">ALERTS</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
             </div>
             <label class="theme-switch-wrap" title="Toggle dark mode">
@@ -88,21 +89,25 @@
 
         <div class="card">
             <h2>Available Dispensers</h2>
+            <!-- ✅ Cards are rendered by JS; critical ones will have pointer-events:none via JS -->
             <div class="card-container" id="statusCards"></div>
         </div>
 
         <div class="card danger-card">
             <h2 class="danger-title">Report Problem</h2>
             <label>Issue Type</label>
-            <select id="issue">
+            <!-- ✅ CHANGED: onchange handler added -->
+            <select id="issue" onchange="handleIssueChange()">
                 <option>No cooling/heating</option>
                 <option>Leaking</option>
                 <option>Dirty</option>
                 <option>No Power</option>
                 <option>Clogged filter/spout</option>
+                <option>Others</option>
             </select>
-            <label>Additional Details (Optional)</label>
-            <textarea id="details" placeholder="Describe the issue in more detail..."></textarea>
+            <label for="details">Additional Details <span id="detailsOptionalLabel">(Optional)</span></label>
+            <!-- ✅ CHANGED: starts disabled -->
+            <textarea id="details" placeholder="Select 'Others' above to add details..." disabled></textarea>
             <button class="submit-btn" id="submitBtn" onclick="submitComplaint()">Submit Complaint</button>
             <div id="feedback"></div>
         </div>
@@ -118,5 +123,70 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="js/app-1.js"></script>
+
+    <script>
+        /* ── ISSUE DROPDOWN → TEXTAREA TOGGLE ── */
+        function handleIssueChange() {
+            const select  = document.getElementById('issue');
+            const textarea = document.getElementById('details');
+            const label    = document.getElementById('detailsOptionalLabel');
+
+            if (select.value === 'Others') {
+                textarea.disabled     = false;
+                textarea.placeholder  = 'Describe the issue in more detail...';
+                textarea.style.opacity = '1';
+                textarea.style.cursor  = 'text';
+                if (label) label.textContent = '(Required)';
+            } else {
+                textarea.disabled     = true;
+                textarea.value        = '';
+                textarea.placeholder  = "Select 'Others' above to add details...";
+                textarea.style.opacity = '0.5';
+                textarea.style.cursor  = 'not-allowed';
+                if (label) label.textContent = '(Optional)';
+            }
+        }
+
+        // Run on load so the initial state is correct
+        document.addEventListener('DOMContentLoaded', handleIssueChange);
+
+
+        /* ── BLOCK CLICKS ON CRITICAL DISPENSER CARDS ──
+           Your app-1.js renders cards into #statusCards.
+           We watch for new cards and disable critical ones. */
+        function disableCriticalCards() {
+            document.querySelectorAll('#statusCards .status-card').forEach(card => {
+                const badge = card.querySelector('.status-badge');
+                if (!badge) return;
+
+                const isCritical =
+                    badge.classList.contains('status-critical') ||
+                    badge.classList.contains('critical') ||
+                    badge.classList.contains('status-empty') ||
+                    badge.classList.contains('empty') ||
+                    badge.classList.contains('status-offline') ||
+                    badge.classList.contains('offline');
+
+                if (isCritical) {
+                    card.style.pointerEvents = 'none';
+                    card.style.opacity       = '0.6';
+                    card.style.cursor        = 'not-allowed';
+                    // Remove any hover transform
+                    card.classList.add('card-disabled');
+                }
+            });
+        }
+
+        // Observe #statusCards for DOM changes (cards added by Firebase)
+        const observer = new MutationObserver(disableCriticalCards);
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('statusCards');
+            if (container) {
+                observer.observe(container, { childList: true, subtree: true });
+            }
+            // Also run once immediately in case cards already exist
+            disableCriticalCards();
+        });
+    </script>
 </body>
 </html>
