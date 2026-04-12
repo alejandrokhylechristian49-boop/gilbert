@@ -95,9 +95,9 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 10px;
-  height: 32px;
-  border-radius: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   background: rgba(255,255,255,0.15);
   border: 1.5px solid rgba(255,255,255,0.3);
   transition: background 0.2s;
@@ -106,13 +106,7 @@ header {
 .notif-bell-wrap:hover { background: rgba(255,255,255,0.25); }
 .notif-bell-wrap:active { background: rgba(255,255,255,0.35); }
 
-.notif-bell-icon {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #fff;
-  line-height: 1;
-}
+/* Removed .notif-bell-icon text style — now using SVG */
 
 .notif-badge {
   position: absolute;
@@ -460,6 +454,17 @@ h2.danger-title {
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
+/* ✅ NEW: Disabled state for critical/offline/empty cards */
+.status-card.card-disabled {
+  pointer-events: none !important;
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+.status-card.card-disabled:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+}
+
 .status-card.selected-route {
   border: 2px solid #353ba7;
   background: var(--selected-bg);
@@ -739,10 +744,20 @@ select, textarea {
   border-radius: 8px;
   border: 1px solid var(--input-border);
   font-size: 15px;
-  transition: border 0.2s, box-shadow 0.2s, background-color 0.3s, color 0.3s;
+  transition: border 0.2s, box-shadow 0.2s, background-color 0.3s, color 0.3s, opacity 0.2s;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: var(--input-bg);
   color: var(--text-primary);
+}
+
+/* ✅ NEW: Disabled textarea styling */
+textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+  resize: none;
 }
 
 .danger-card select, .danger-card textarea { border-color: #f5c6cb; }
