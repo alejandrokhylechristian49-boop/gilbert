@@ -98,17 +98,16 @@
             <label>Issue Type</label>
             <!-- ✅ CHANGED: onchange handler added -->
             <select id="issue" onchange="handleIssueChange()">
-            <option value="" disabled selected>Please Select a Complaint</option>
-            <option>No cooling/heating</option>
-            <option>Leaking</option>
-            <option>Dirty</option>
-            <option>No Power</option>
-            <option>Clogged filter/spout</option>
-            <option>Others</option>
+                <option value="" disabled selected>Please Select a Complaint</option>
+                <option>No cooling/heating</option>
+                <option>Leaking</option>
+                <option>Dirty</option>
+                <option>No Power</option>
+                <option>Clogged filter/spout</option>
+                <option>Others</option>
             </select>
-            <label for="details">Additional Details <span id="detailsOptionalLabel">(Optional)</span></label>
-            <!-- ✅ CHANGED: starts disabled -->
-            <textarea id="details" placeholder="Select 'Others' above to add details..." disabled></textarea>
+            <label for="details" id="detailsLabel" style="display:none;">Additional Details (Required)</label>
+            <textarea id="details" placeholder="Describe the issue in more detail..." style="display:none;"></textarea>
             <button class="submit-btn" id="submitBtn" onclick="submitComplaint()">Submit Complaint</button>
             <div id="feedback"></div>
         </div>
