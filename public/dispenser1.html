@@ -127,25 +127,23 @@
     <script>
         /* ── ISSUE DROPDOWN → TEXTAREA TOGGLE ── */
         function handleIssueChange() {
-            const select  = document.getElementById('issue');
-            const textarea = document.getElementById('details');
-            const label    = document.getElementById('detailsOptionalLabel');
+        const select   = document.getElementById('issue');
+        const textarea = document.getElementById('details');
+        const label    = document.getElementById('detailsLabel');
 
-            if (select.value === 'Others') {
-                textarea.disabled     = false;
-                textarea.placeholder  = 'Describe the issue in more detail...';
-                textarea.style.opacity = '1';
-                textarea.style.cursor  = 'text';
-                if (label) label.textContent = '(Required)';
-            } else {
-                textarea.disabled     = true;
-                textarea.value        = '';
-                textarea.placeholder  = "Select 'Others' above to add details...";
-                textarea.style.opacity = '0.5';
-                textarea.style.cursor  = 'not-allowed';
-                if (label) label.textContent = '(Optional)';
-            }
+        if (select.value === 'Others') {
+            label.style.display    = 'block';
+            textarea.style.display = 'block';
+            textarea.disabled      = false;
+        } else {
+            label.style.display    = 'none';
+            textarea.style.display = 'none';
+            textarea.disabled      = true;
+            textarea.value         = '';
         }
+    }
+
+    document.addEventListener('DOMContentLoaded', handleIssueChange);
 
         // Run on load so the initial state is correct
         document.addEventListener('DOMContentLoaded', handleIssueChange);
